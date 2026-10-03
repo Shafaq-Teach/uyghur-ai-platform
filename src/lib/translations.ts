@@ -9,7 +9,6 @@ export const translations = {
     navTts: 'ئاۋازلىق ئوقۇش (TTS)',
     navVideo: 'ئىلان ۋىدېيوسى',
     navHistory: 'ئەسەرلەر تارىخى',
-    navDashboard: 'داشبورد',
     navSettings: 'تەڭشەكلەر',
 
     // Common
@@ -282,7 +281,6 @@ export const translations = {
     navTts: 'Speech (TTS)',
     navVideo: 'Ad Video',
     navHistory: 'History',
-    navDashboard: 'Dashboard',
     navSettings: 'Settings',
 
     // Common

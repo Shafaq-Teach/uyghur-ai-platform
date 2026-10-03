@@ -4,8 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { UniversalLauncher } from '@/components/dashboard/UniversalLauncher';
-import { ModelTelemetryWidget } from '@/components/dashboard/ModelTelemetryWidget';
-import { CloudVaultCard } from '@/components/dashboard/CloudVaultCard';
 import { 
   MessageSquare, 
   Languages, 
@@ -201,12 +199,6 @@ export default function HomePage() {
 
       {/* Universal Omni-Box Launcher for Instant Tasks */}
       <UniversalLauncher />
-
-      {/* Twin Cockpit Cards: Live Telemetry & Cloud Vault */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ModelTelemetryWidget />
-        <CloudVaultCard />
-      </div>
 
       {/* Module Matrix Section */}
       <section className="space-y-6">
