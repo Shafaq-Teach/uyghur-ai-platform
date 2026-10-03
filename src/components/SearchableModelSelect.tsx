@@ -54,6 +54,39 @@ export const SearchableModelSelect: React.FC<Props> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const SPECIAL_MODELS: ModelItem[] = [
+    {
+      id: 'openai/tts-1',
+      name: 'OpenAI TTS-1 (تەبىئىي ئاۋاز)',
+      provider: 'openrouter',
+      description: 'Standard high-speed natural speech synthesis',
+    },
+    {
+      id: 'openai/tts-1-hd',
+      name: 'OpenAI TTS-1 HD (ستۇدىيە سۈپىتىدە ئاۋاز)',
+      provider: 'openrouter',
+      description: 'Studio quality speech synthesizer model',
+    },
+    {
+      id: 'black-forest-labs/flux-1-schnell',
+      name: 'FLUX-1 Schnell (Black Forest Labs)',
+      provider: 'openrouter',
+      description: 'Ultra fast 4-step high resolution image generation',
+    },
+    {
+      id: 'black-forest-labs/flux-1-dev',
+      name: 'FLUX-1 Dev (Black Forest Labs)',
+      provider: 'openrouter',
+      description: 'Elite open weights image generation model',
+    },
+    {
+      id: 'stabilityai/stable-diffusion-3-medium',
+      name: 'Stable Diffusion 3 Medium',
+      provider: 'openrouter',
+      description: 'Multimodal diffusion model for photo generation',
+    },
+  ];
+
   // Fetch full live models list
   useEffect(() => {
     if (cachedGlobalModels && cachedGlobalModels.length > 0) {
@@ -67,12 +100,20 @@ export const SearchableModelSelect: React.FC<Props> = ({
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.models)) {
-          cachedGlobalModels = data.models;
-          setModels(data.models);
+          // Merge unique special models
+          const combined = [...SPECIAL_MODELS];
+          data.models.forEach((m: any) => {
+            if (!combined.some((x) => x.id === m.id)) {
+              combined.push(m);
+            }
+          });
+          cachedGlobalModels = combined;
+          setModels(combined);
         }
       })
       .catch((err) => {
         console.error('Failed to load models:', err);
+        setModels(SPECIAL_MODELS);
       })
       .finally(() => {
         setLoading(false);
@@ -168,15 +209,15 @@ export const SearchableModelSelect: React.FC<Props> = ({
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-indigo-500/40 rounded-2xl px-3.5 py-2.5 text-start flex items-center justify-between gap-2 transition shadow-sm focus:outline-none focus:border-indigo-500"
+        className="w-full bg-white dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] border border-slate-300 dark:border-white/[0.1] hover:border-indigo-500/60 rounded-2xl px-3.5 py-2.5 text-start flex items-center justify-between gap-2 transition shadow-sm focus:outline-none focus:border-indigo-500"
       >
         <div className="flex items-center gap-2 overflow-hidden flex-1">
-          <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />
+          <Cpu className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
           <div className="truncate flex items-center gap-2">
-            <span className="font-semibold text-xs text-white truncate">
+            <span className="font-semibold text-xs text-slate-800 dark:text-white truncate">
               {selectedModel.name}
             </span>
-            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline truncate">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono hidden sm:inline truncate">
               ({selectedModel.id})
             </span>
           </div>
@@ -186,8 +227,8 @@ export const SearchableModelSelect: React.FC<Props> = ({
           <span
             className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold border ${
               selectedModel.provider === 'gemini'
-                ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30'
+                : 'bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30'
             }`}
           >
             {selectedModel.provider === 'gemini' ? 'Gemini' : 'OpenRouter'}
@@ -200,11 +241,11 @@ export const SearchableModelSelect: React.FC<Props> = ({
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-2 w-full min-w-[320px] sm:min-w-[420px] max-w-lg tech-card border border-white/[0.12] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[460px] animate-fade-in backdrop-blur-2xl"
+          className="absolute z-50 mt-2 w-full min-w-[320px] sm:min-w-[420px] max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.12] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[460px] animate-fade-in backdrop-blur-2xl"
           style={{ right: 0 }}
         >
           {/* Search Box */}
-          <div className="p-3 border-b border-slate-800 bg-slate-900/90 space-y-2">
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 space-y-2">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
@@ -212,8 +253,8 @@ export const SearchableModelSelect: React.FC<Props> = ({
                 autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.searchModelPlaceholder}
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl py-2 px-3 ps-9 pe-8 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                placeholder={t.searchModelPlaceholder || 'مودېل نامى ياكى كودىنى كىرگۈزۈپ ئىزدەڭ...'}
+                className="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 ps-9 pe-8 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono"
                 dir="ltr"
               />
               {search && (

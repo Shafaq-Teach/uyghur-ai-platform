@@ -23,6 +23,7 @@ import {
   ExternalLink,
   ShieldAlert
 } from 'lucide-react';
+import { SearchableModelSelect } from '@/components/SearchableModelSelect';
 
 interface AdminConfigResponse {
   config: {
@@ -374,29 +375,24 @@ export default function AdminDashboardPage() {
           </button>
         </div>
 
-        {/* 5 Model Engine Cards */}
+        {/* 5 Model Engine Cards with Live Searchable All Models Catalog */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* Chat Model */}
           <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">1. ئەقلىي چات مودېلى (Chat)</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                ئاساسىي
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold">
+                بارلىق مودېللار
               </span>
             </div>
-            <select
+            <SearchableModelSelect
               value={selectedModels.chat}
-              onChange={(e) => setSelectedModels({ ...selectedModels, chat: e.target.value })}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="google/gemini-2.5-flash">google/gemini-2.5-flash (تەۋسىيەلىك، تېز، كۈچلۈك)</option>
-              <option value="deepseek/deepseek-chat">deepseek/deepseek-chat (DeepSeek V3)</option>
-              <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet (يۇقىرى ئەقىل)</option>
-              <option value="openai/gpt-4o">openai/gpt-4o (Omni ئەقلى)</option>
-              <option value="meta-llama/llama-3.3-70b-instruct">meta-llama/llama-3.3-70b-instruct</option>
-            </select>
-            <p className="text-[11px] text-slate-500">
-              ئابۇنىتلار پاراڭلاشقاندا ئاپتوماتىك قوزغىلىدىغان ماتور.
+              onChange={(modelId) => setSelectedModels({ ...selectedModels, chat: modelId })}
+              categoryHint="chat"
+              placeholder="چات مودېلىنى ئىزدەڭ (Gemini, Claude, DeepSeek, GPT...)"
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              ئابۇنىتلار پاراڭلاشقاندا ئاپتوماتىك قوزغىلىدىغان مەركىزىي چات ماتورى.
             </p>
           </div>
 
@@ -404,20 +400,17 @@ export default function AdminDashboardPage() {
           <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">2. تەرجىمە مودېلى (Translate)</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
                 7 ئۇسلۇب
               </span>
             </div>
-            <select
+            <SearchableModelSelect
               value={selectedModels.translate}
-              onChange={(e) => setSelectedModels({ ...selectedModels, translate: e.target.value })}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-            >
-              <option value="google/gemini-2.5-flash">google/gemini-2.5-flash (ئۇيغۇرچە راۋان تەرجىمە)</option>
-              <option value="deepseek/deepseek-chat">deepseek/deepseek-chat (DeepSeek كۈچلۈك تەرجىمە)</option>
-              <option value="qwen/qwen-2.5-72b-instruct">qwen/qwen-2.5-72b-instruct (شەرق تىللىرى ئۈچۈن)</option>
-            </select>
-            <p className="text-[11px] text-slate-500">
+              onChange={(modelId) => setSelectedModels({ ...selectedModels, translate: modelId })}
+              categoryHint="translate"
+              placeholder="تەرجىمە مودېلىنى ئىزدەڭ..."
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               ئۇيغۇرچە ئەدەبىي، رەسمىي، سودا قاتارلىق ئۇسلۇبلار ئۈچۈن تەرجىمە ماتورى.
             </p>
           </div>
@@ -426,20 +419,17 @@ export default function AdminDashboardPage() {
           <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">3. رەسىم مودېلى (Image Studio)</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                FLUX
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold">
+                FLUX / SD
               </span>
             </div>
-            <select
+            <SearchableModelSelect
               value={selectedModels.image}
-              onChange={(e) => setSelectedModels({ ...selectedModels, image: e.target.value })}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-purple-500 outline-none"
-            >
-              <option value="black-forest-labs/flux-1-schnell">black-forest-labs/flux-1-schnell (4 سېكۇنتتا يۇقىرى سۈپەت)</option>
-              <option value="black-forest-labs/flux-1-dev">black-forest-labs/flux-1-dev (Ultra دەقىق سۈپەت)</option>
-              <option value="stabilityai/stable-diffusion-3-medium">stabilityai/stable-diffusion-3-medium</option>
-            </select>
-            <p className="text-[11px] text-slate-500">
+              onChange={(modelId) => setSelectedModels({ ...selectedModels, image: modelId })}
+              categoryHint="image"
+              placeholder="رەسىم مودېلىنى ئىزدەڭ (Flux, SD...)"
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               ئابۇنىتلار سۈرەت ھاسىل قىلغاندا ئىشلىتىلىدىغان گرافىك مودېلى.
             </p>
           </div>
@@ -448,20 +438,18 @@ export default function AdminDashboardPage() {
           <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">4. ئاۋاز مودېلى (TTS Voice)</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                Neural Speech
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold">
+                Speech
               </span>
             </div>
-            <select
+            <SearchableModelSelect
               value={selectedModels.tts}
-              onChange={(e) => setSelectedModels({ ...selectedModels, tts: e.target.value })}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-            >
-              <option value="openai/tts-1">openai/tts-1 (تەبىئىي راۋان ئاۋاز)</option>
-              <option value="openai/tts-1-hd">openai/tts-1-hd (ستۇدىيە سۈپىتى HD)</option>
-            </select>
-            <p className="text-[11px] text-slate-500">
-              تېكىستنى ئاۋازغا ئايلاندۇرۇش ماتورى.
+              onChange={(modelId) => setSelectedModels({ ...selectedModels, tts: modelId })}
+              categoryHint="tts"
+              placeholder="ئاۋاز مودېلىنى ئىزدەڭ..."
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              تېكىستنى ئاۋازغا ئايلاندۇرۇش سۈنئىي ئاۋاز ماتورى.
             </p>
           </div>
 
@@ -469,19 +457,17 @@ export default function AdminDashboardPage() {
           <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200">5. تاۋار سىن فىلىمى (Video Ad Script)</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
                 E-Commerce
               </span>
             </div>
-            <select
+            <SearchableModelSelect
               value={selectedModels.video}
-              onChange={(e) => setSelectedModels({ ...selectedModels, video: e.target.value })}
-              className="w-full text-xs p-2.5 rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#12131a] text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-amber-500 outline-none"
-            >
-              <option value="google/gemini-2.5-flash">google/gemini-2.5-flash (تېز سىنارىيە ۋە كۆرۈنۈش ماتورى)</option>
-              <option value="deepseek/deepseek-chat">deepseek/deepseek-chat (سودا ئېلان ئىجادىيىتى)</option>
-            </select>
-            <p className="text-[11px] text-slate-500">
+              onChange={(modelId) => setSelectedModels({ ...selectedModels, video: modelId })}
+              categoryHint="video"
+              placeholder="سىن سىنارىيە مودېلىنى ئىزدەڭ..."
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               مەھسۇلاتنى سىن فىلىمى قىلىپ تەييارلايدىغان ئەقلىي ماتور.
             </p>
           </div>

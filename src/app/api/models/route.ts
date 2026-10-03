@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 let cachedModels: any[] | null = null;
 let lastCacheTime = 0;
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes

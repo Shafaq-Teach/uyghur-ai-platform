@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { invalidateSystemConfigCache } from '@/lib/serverConfig';
 
+export const runtime = 'edge';
+
 export async function GET(req: NextRequest) {
   try {
     // 1. Fetch system_config
