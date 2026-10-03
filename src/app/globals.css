@@ -1,0 +1,435 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@font-face {
+  font-family: 'UKIJ Ekran';
+  src: local('UKIJ Ekran'), url('/fonts/UKIJEkran.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'UKIJ Kawak 3D';
+  src: local('UKIJ Kawak 3D'), local('UKIJKawak3D'), url('/fonts/UKIJKa3D.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'UKIJ Chiver Kufi';
+  src: local('UKIJ Kufi Chiwer'), local('UKIJ Chiver Kufi'), local('UKIJChiwerKufi'), url('/fonts/UKIJKuChi.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'UKIJ Kufi Chiwer';
+  src: local('UKIJ Kufi Chiwer'), local('UKIJ Chiver Kufi'), url('/fonts/UKIJKuChi.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-kawak, .font-kawak *, .font-3d, .font-3d * {
+  font-family: 'UKIJ Kawak 3D', 'UKIJ Ekran', sans-serif !important;
+}
+
+.font-chiver, .font-kufi {
+  font-family: 'UKIJ Kawak 3D', 'UKIJ Chiver Kufi', 'UKIJ Kufi Chiwer', 'UKIJ Ekran', sans-serif !important;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+  }
+
+  .dark {
+    --background: 230 25% 5%;
+    --foreground: 210 40% 98%;
+  }
+
+  * {
+    border-color: rgba(226, 232, 240, 0.9);
+  }
+
+  .dark * {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  body {
+    font-family: 'UKIJ Ekran', 'Inter', system-ui, sans-serif;
+    min-h-screen: 100vh;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* 1. Cyber Dark (Default Dark) */
+  html[data-theme="dark"], html:not([data-theme]) {
+    color-scheme: dark;
+  }
+  html[data-theme="dark"] body, html:not([data-theme]).dark body {
+    background-color: #08090d;
+    color: #f1f5f9;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.10) 0px, transparent 40%),
+      radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
+      radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+    background-attachment: fixed;
+  }
+
+  /* 2. Soft Studio Light (Calibrated gentle slate-silver, NOT harsh white) */
+  html[data-theme="light"], html:not(.dark):not([data-theme="warm"]) {
+    color-scheme: light;
+  }
+  html[data-theme="light"] body, html:not(.dark):not([data-theme="warm"]) body {
+    background-color: #edf2f7;
+    color: #1a202c;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 45%),
+      radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 45%),
+      radial-gradient(at 50% 100%, rgba(148, 163, 184, 0.08) 0px, transparent 50%),
+      radial-gradient(rgba(148, 163, 184, 0.22) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+    background-attachment: fixed;
+  }
+
+  /* 3. Deep Midnight Navy (Cyber Ocean) */
+  html[data-theme="midnight"] {
+    color-scheme: dark;
+  }
+  html[data-theme="midnight"] body {
+    background-color: #070d19;
+    color: #e2e8f0;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.16) 0px, transparent 45%),
+      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.14) 0px, transparent 45%),
+      radial-gradient(at 50% 100%, rgba(30, 58, 138, 0.25) 0px, transparent 55%),
+      radial-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+    background-attachment: fixed;
+  }
+
+  /* 4. Warm Eye-Care Sepia (Relaxed Paper Aesthetic) */
+  html[data-theme="warm"] {
+    color-scheme: light;
+  }
+  html[data-theme="warm"] body {
+    background-color: #f7f3ec;
+    color: #2d261e;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(217, 119, 6, 0.08) 0px, transparent 45%),
+      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.06) 0px, transparent 45%),
+      radial-gradient(at 50% 100%, rgba(180, 83, 9, 0.05) 0px, transparent 55%),
+      radial-gradient(rgba(180, 140, 100, 0.2) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+    background-attachment: fixed;
+  }
+
+  /* Support Uyghur fonts with UKIJ Ekran */
+  [dir="rtl"]:not(.font-kawak):not(.font-3d),
+  [dir="rtl"] *:not(.font-kawak):not(.font-kawak *):not(.font-3d):not(.font-3d *):not(.font-mono):not(code):not(pre) {
+    font-family: 'UKIJ Ekran', 'UKIJ Tuz', 'Microsoft Uighur', system-ui, sans-serif;
+    line-height: 1.75;
+    letter-spacing: 0;
+  }
+
+  /* Monospace for code & models */
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    direction: ltr !important;
+  }
+}
+
+/* Custom scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Technical HUD & Glass Utilities */
+
+/* 1. Dark tech-card */
+.tech-card {
+  background: linear-gradient(135deg, rgba(17, 20, 29, 0.88) 0%, rgba(10, 12, 18, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.25s ease;
+}
+
+.tech-card:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 25px -5px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* 2. Soft Studio Light tech-card */
+html[data-theme="light"] .tech-card,
+html:not(.dark):not([data-theme="warm"]) .tech-card {
+  background: rgba(248, 250, 252, 0.92) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  box-shadow: 0 4px 16px -2px rgba(100, 116, 139, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+html[data-theme="light"] .tech-card:hover,
+html:not(.dark):not([data-theme="warm"]) .tech-card:hover {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 8px 24px -4px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* 3. Midnight Navy tech-card */
+html[data-theme="midnight"] .tech-card {
+  background: linear-gradient(135deg, rgba(12, 22, 39, 0.9) 0%, rgba(7, 13, 25, 0.96) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.16) !important;
+  box-shadow: 0 4px 20px -2px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(56, 189, 248, 0.1) !important;
+}
+
+html[data-theme="midnight"] .tech-card:hover {
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 10px 30px -5px rgba(2, 6, 23, 0.7), 0 0 25px -5px rgba(14, 165, 233, 0.2) !important;
+}
+
+/* 4. Warm Sepia tech-card */
+html[data-theme="warm"] .tech-card {
+  background: rgba(253, 250, 244, 0.94) !important;
+  border: 1px solid rgba(226, 214, 196, 0.9) !important;
+  box-shadow: 0 4px 16px -2px rgba(180, 140, 100, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+html[data-theme="warm"] .tech-card:hover {
+  border-color: rgba(217, 119, 6, 0.4) !important;
+  box-shadow: 0 8px 24px -4px rgba(217, 119, 6, 0.12) !important;
+}
+
+/* Glass Header across themes */
+.tech-glass-header {
+  background: rgba(8, 9, 13, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.25s ease;
+}
+
+html[data-theme="light"] .tech-glass-header,
+html:not(.dark):not([data-theme="warm"]) .tech-glass-header {
+  background: rgba(241, 245, 249, 0.92) !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.85) !important;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="midnight"] .tech-glass-header {
+  background: rgba(7, 13, 25, 0.88) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.14) !important;
+}
+
+html[data-theme="warm"] .tech-glass-header {
+  background: rgba(247, 243, 236, 0.94) !important;
+  border-bottom: 1px solid rgba(226, 214, 196, 0.85) !important;
+  box-shadow: 0 1px 4px 0 rgba(180, 140, 100, 0.05) !important;
+}
+
+/* Tech pulse dot */
+@keyframes techPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.tech-pulse {
+  animation: techPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ========================================================= */
+/* Calibrated Light & Warm Text and Form Inputs              */
+/* ========================================================= */
+html:not(.dark) h1:not([class*="bg-gradient"]),
+html:not(.dark) h2:not([class*="bg-gradient"]),
+html:not(.dark) h3:not([class*="bg-gradient"]),
+html:not(.dark) h4:not([class*="bg-gradient"]) {
+  color: #1e293b;
+}
+
+html[data-theme="warm"] h1:not([class*="bg-gradient"]),
+html[data-theme="warm"] h2:not([class*="bg-gradient"]),
+html[data-theme="warm"] h3:not([class*="bg-gradient"]),
+html[data-theme="warm"] h4:not([class*="bg-gradient"]) {
+  color: #292015 !important;
+}
+
+html:not(.dark) .bg-gradient-to-r.from-white {
+  background-image: linear-gradient(to right, #0f172a, #3730a3, #1e293b) !important;
+}
+
+html[data-theme="warm"] .bg-gradient-to-r.from-white {
+  background-image: linear-gradient(to right, #292015, #9a3412, #451a03) !important;
+}
+
+html:not(.dark) .text-white:not([class*="bg-gradient"]):not([class*="bg-indigo"]):not([class*="bg-purple"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-teal"]) {
+  color: #1e293b;
+}
+
+html[data-theme="warm"] .text-white:not([class*="bg-gradient"]):not([class*="bg-indigo"]):not([class*="bg-purple"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-teal"]) {
+  color: #292015 !important;
+}
+
+html:not(.dark) .text-slate-100 {
+  color: #1e293b !important;
+}
+html:not(.dark) .text-slate-200 {
+  color: #334155 !important;
+}
+html:not(.dark) .text-slate-300 {
+  color: #475569 !important;
+}
+html:not(.dark) .text-slate-400 {
+  color: #64748b !important;
+}
+html:not(.dark) .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Warm theme slate text overrides */
+html[data-theme="warm"] .text-slate-100,
+html[data-theme="warm"] .text-slate-200 {
+  color: #2d261e !important;
+}
+html[data-theme="warm"] .text-slate-300,
+html[data-theme="warm"] .text-slate-400,
+html[data-theme="warm"] .text-slate-500 {
+  color: #715e47 !important;
+}
+
+/* Inputs, textareas & selects for Light and Warm */
+html[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html[data-theme="light"] textarea,
+html[data-theme="light"] select,
+html:not(.dark):not([data-theme="warm"]) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html:not(.dark):not([data-theme="warm"]) textarea,
+html:not(.dark):not([data-theme="warm"]) select {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="warm"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html[data-theme="warm"] textarea,
+html[data-theme="warm"] select {
+  background-color: #fffdf9 !important;
+  color: #292015 !important;
+  border-color: #d6c6b2 !important;
+  box-shadow: 0 1px 2px 0 rgba(180, 140, 100, 0.05) !important;
+}
+
+/* Light & Warm containers */
+html[data-theme="light"] .bg-\[\#06070a\],
+html[data-theme="light"] .bg-\[\#0d0f17\],
+html[data-theme="light"] .bg-\[\#0f121c\],
+html:not(.dark):not([data-theme="warm"]) .bg-\[\#06070a\],
+html:not(.dark):not([data-theme="warm"]) .bg-\[\#0d0f17\],
+html:not(.dark):not([data-theme="warm"]) .bg-\[\#0f121c\] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="warm"] .bg-\[\#06070a\],
+html[data-theme="warm"] .bg-\[\#0d0f17\],
+html[data-theme="warm"] .bg-\[\#0f121c\] {
+  background-color: #ede7dc !important;
+  border-color: #ddd4c4 !important;
+  color: #292015 !important;
+}
+
+html:not(.dark) .bg-slate-900,
+html:not(.dark) .bg-slate-900\/90,
+html:not(.dark) .bg-slate-800,
+html:not(.dark) .bg-slate-800\/90,
+html:not(.dark) .bg-slate-800\/80,
+html:not(.dark) .bg-slate-800\/70,
+html:not(.dark) .bg-slate-800\/40,
+html:not(.dark) .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="warm"] .bg-slate-900,
+html[data-theme="warm"] .bg-slate-900\/90,
+html[data-theme="warm"] .bg-slate-800,
+html[data-theme="warm"] .bg-slate-950 {
+  background-color: #fcf9f2 !important;
+  border-color: #e5dacb !important;
+  color: #292015 !important;
+}
+
+/* Transparent glass pills */
+html:not(.dark) .bg-white\/\[0\.02\],
+html:not(.dark) .bg-white\/\[0\.03\],
+html:not(.dark) .bg-white\/\[0\.04\],
+html:not(.dark) .bg-white\/\[0\.05\],
+html:not(.dark) .bg-white\/\[0\.06\] {
+  background-color: rgba(226, 232, 240, 0.6) !important;
+  border-color: rgba(203, 213, 225, 0.7) !important;
+  color: #1e293b !important;
+}
+
+html[data-theme="warm"] .bg-white\/\[0\.02\],
+html[data-theme="warm"] .bg-white\/\[0\.03\],
+html[data-theme="warm"] .bg-white\/\[0\.04\],
+html[data-theme="warm"] .bg-white\/\[0\.05\],
+html[data-theme="warm"] .bg-white\/\[0\.06\] {
+  background-color: rgba(235, 227, 214, 0.7) !important;
+  border-color: rgba(218, 206, 189, 0.8) !important;
+  color: #292015 !important;
+}
+
+html:not(.dark) .border-white\/\[0\.05\],
+html:not(.dark) .border-white\/\[0\.06\],
+html:not(.dark) .border-white\/\[0\.07\],
+html:not(.dark) .border-white\/\[0\.08\],
+html:not(.dark) .border-white\/\[0\.1\],
+html:not(.dark) .border-white\/\[0\.12\],
+html:not(.dark) .border-white\/\[0\.15\] {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="warm"] .border-white\/\[0\.05\],
+html[data-theme="warm"] .border-white\/\[0\.08\],
+html[data-theme="warm"] .border-white\/\[0\.1\] {
+  border-color: #d6c6b2 !important;
+}
+
