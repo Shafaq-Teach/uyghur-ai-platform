@@ -25,7 +25,8 @@ import {
   ChevronDown,
   Palette,
   Sunset,
-  ShieldCheck
+  ShieldCheck,
+  LayoutDashboard
 } from 'lucide-react';
 import { AuthModal } from '@/components/AuthModal';
 
@@ -38,6 +39,7 @@ export const Header: React.FC = () => {
 
   const navItems = [
     { href: '/', label: t.navHome, icon: Sparkles },
+    { href: '/dashboard', label: t.navDashboard || 'داشبورد', icon: LayoutDashboard },
     { href: '/chat', label: t.navChat, icon: MessageSquare },
     { href: '/translate', label: t.navTranslate, icon: Languages },
     { href: '/image', label: t.navImage, icon: ImageIcon },
