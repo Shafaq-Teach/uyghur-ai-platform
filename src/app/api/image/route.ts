@@ -3,6 +3,98 @@ import { getSystemConfigServer } from '@/lib/serverConfig';
 
 export const runtime = 'edge';
 
+async function translatePromptToEnglish(prompt: string, geminiKey?: string): Promise<string> {
+  const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
+  if (!isUyghurOrNonLatin) {
+    return prompt.trim();
+  }
+
+  let englishText = '';
+
+  // Tier 1: Try Google Gemini with a 3.5s timeout
+  if (geminiKey) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const transRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `Translate this Uyghur image prompt into English for image generation. Return ONLY the translation in one concise English sentence, without markdown, without quotes, without introductory text:\n${prompt}`,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (transRes.ok) {
+        const transJson = await transRes.json();
+        const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        const lines = raw.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#') && !l.startsWith('*') && !l.startsWith('>'));
+        const candidate = lines.find((l: string) => !/[\u0600-\u06FF]/.test(l) && l.length > 5) || raw;
+        const cleaned = candidate.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '');
+        if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
+          englishText = cleaned;
+          console.log('Gemini prompt translation success:', englishText);
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini translation error/timeout, falling back to GTX:', err);
+    }
+  }
+
+  // Tier 2: Instant Google Translate GTX fallback (100% reliable, zero key needed)
+  if (!englishText || /[\u0600-\u06FF]/.test(englishText)) {
+    try {
+      const gtxRes = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ug&tl=en&dt=t&q=${encodeURIComponent(prompt)}`
+      );
+      if (gtxRes.ok) {
+        const gtxData = await gtxRes.json();
+        const gtxText = gtxData[0]?.map((chunk: any) => chunk[0]).join(' ').trim();
+        if (gtxText && !/[\u0600-\u06FF]/.test(gtxText)) {
+          englishText = gtxText;
+          console.log('GTX prompt translation success:', englishText);
+        }
+      }
+    } catch (err) {
+      console.warn('GTX translation error:', err);
+    }
+  }
+
+  // Tier 3: MyMemory API fallback
+  if (!englishText || /[\u0600-\u06FF]/.test(englishText)) {
+    try {
+      const mmRes = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(prompt)}&langpair=ug|en`
+      );
+      if (mmRes.ok) {
+        const mmData = await mmRes.json();
+        const mmText = mmData.responseData?.translatedText?.trim();
+        if (mmText && !/[\u0600-\u06FF]/.test(mmText)) {
+          englishText = mmText;
+          console.log('MyMemory prompt translation success:', englishText);
+        }
+      }
+    } catch (err) {
+      console.warn('MyMemory translation error:', err);
+    }
+  }
+
+  return englishText || prompt.trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -56,45 +148,8 @@ export async function POST(req: NextRequest) {
     };
 
     // 1. Automatic Uyghur/Non-Latin -> English Translation for AI Image Models
-    let englishPrompt = prompt.trim();
-    const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
+    const englishPrompt = await translatePromptToEnglish(prompt, effectiveGeminiKey);
 
-    if (isUyghurOrNonLatin && effectiveGeminiKey) {
-      try {
-        console.log('Gemini translation request with key prefix:', effectiveGeminiKey?.slice(0, 10), 'prompt:', prompt);
-        const transRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${effectiveGeminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `You are an expert visual AI prompt engineer. Translate the following Uyghur image description into a vivid, accurate, highly detailed English text-to-image prompt. Only return the English translation, do not include explanations or quotes:\n\n${prompt}`,
-                    },
-                  ],
-                },
-              ],
-            }),
-          }
-        );
-        console.log('Gemini trans status:', transRes.status);
-        if (transRes.ok) {
-          const transJson = await transRes.json();
-          const translated = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-          console.log('Gemini translated:', translated);
-          if (translated) {
-            englishPrompt = translated.replace(/^["']|["']$/g, '');
-          }
-        } else {
-          console.log('Gemini trans failed text:', await transRes.text());
-        }
-      } catch (err) {
-        console.warn('Gemini prompt translation error:', err);
-      }
-    }
 
     const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
     const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
@@ -145,7 +200,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. High-Quality Neural AI Image Generation (Real AI Diffusion matching exact prompt)
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}`;
+    const seed = Math.floor(Math.random() * 1000000);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&nologo=true`;
 
     return NextResponse.json({
       imageUrl: pollinationsUrl,

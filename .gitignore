@@ -37,3 +37,6 @@ next-env.d.ts
 
 # test screenshots
 *.png
+!public/*.png
+!public/**/*.png
+

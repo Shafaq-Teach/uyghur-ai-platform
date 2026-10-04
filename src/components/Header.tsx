@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
           <div className="relative">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-cyan-400 p-[1.5px] shadow-lg shadow-indigo-500/30 group-hover:shadow-indigo-500/50 group-hover:scale-105 transition-all duration-300">
               <img 
-                src="/logo.png" 
+                src="/logo_icon.png" 
                 alt="Uyghur Platform AI" 
                 className="w-full h-full rounded-[14px] object-cover" 
               />
