@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
 
     // 3. High-Quality Neural AI Image Generation (Real AI Diffusion matching exact prompt)
     const seed = Math.floor(Math.random() * 1000000);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&model=flux&nologo=true`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&nologo=true`;
 
     return NextResponse.json({
       imageUrl: pollinationsUrl,
