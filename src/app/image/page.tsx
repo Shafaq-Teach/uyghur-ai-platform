@@ -26,6 +26,7 @@ export default function ImagePage() {
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [translatedPrompt, setTranslatedPrompt] = useState('');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [error, setError] = useState('');
 
   const ratios = [
     { id: '1:1', label: '1:1', desc: 'كۋادرات (Instagram / Square)' },
@@ -50,6 +51,7 @@ export default function ImagePage() {
   const handleGenerate = async () => {
     if (!prompt.trim() || loading) return;
     setLoading(true);
+    setError('');
 
     try {
       const response = await fetch('/api/image', {
@@ -90,7 +92,8 @@ export default function ImagePage() {
         },
       });
     } catch (err: any) {
-      alert(`خاتالىق: ${err.message}`);
+      console.error('Image generation error:', err);
+      setError(err.message || 'خاتالىق يۈز بەردى');
     } finally {
       setLoading(false);
     }
@@ -206,6 +209,12 @@ export default function ImagePage() {
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             <span>{loading ? t.loading : t.generateImageBtn}</span>
           </button>
+
+          {error && (
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium animate-fade-in">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Preview Column */}
