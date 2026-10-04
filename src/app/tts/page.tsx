@@ -93,7 +93,7 @@ export default function TtsPage() {
         },
       });
     } catch (err: any) {
-      alert(`خاتالىق: ${err.message}`);
+      alert('ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.');
     } finally {
       setLoading(false);
     }

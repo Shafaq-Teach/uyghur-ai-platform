@@ -62,11 +62,10 @@ CRITICAL RULES:
     // OpenRouter branch
     if (provider === 'openrouter') {
       if (!cleanOpenRouterKey || cleanOpenRouterKey.length < 8) {
-        // Fallback translation demo
-        return NextResponse.json({
-          translation: `[OpenRouter سىناق كۆرسىتىشى]: OpenRouter API ئاچقۇچى كىرگۈزۈلمىگەن. «تەڭشەكلەر» (Settings) بېتىدىن API ئاچقۇچىڭىزنى كىرگۈزسىڭىز، تاللانغان «${model}» مودېلى بىۋاسىتە تەرجىمە قىلىدۇ.\n\nتەرجىمە قىلىنماقچى بولغان تېكىست: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
-          isDemo: true,
-        });
+        return NextResponse.json(
+          { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
+          { status: 503 }
+        );
       }
 
       let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -109,9 +108,8 @@ CRITICAL RULES:
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
         return NextResponse.json(
-          { error: `OpenRouter تەرجىمە خاتالىقى: ${response.status} - ${errorText}` },
+          { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
           { status: response.status }
         );
       }
@@ -124,11 +122,11 @@ CRITICAL RULES:
     // Direct Gemini branch
     if (provider === 'gemini') {
       const effectiveGeminiKey = cleanGeminiKey;
-      if (!effectiveGeminiKey) {
-        return NextResponse.json({
-          translation: `[Gemini سىناق كۆرسىتىشى]: Gemini API ئاچقۇچى تەڭشەلمىگەن. تاللانغان مودېل: ${model}`,
-          isDemo: true,
-        });
+      if (!effectiveGeminiKey || effectiveGeminiKey.length < 8) {
+        return NextResponse.json(
+          { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
+          { status: 503 }
+        );
       }
 
       // Migrate deprecated models
@@ -178,9 +176,8 @@ CRITICAL RULES:
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
         return NextResponse.json(
-          { error: `Gemini تەرجىمە خاتالىقى: ${response.status} - ${errorText}` },
+          { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
           { status: response.status }
         );
       }
@@ -190,9 +187,9 @@ CRITICAL RULES:
       return NextResponse.json({ translation });
     }
 
-    return NextResponse.json({ error: 'نامەلۇم تەمىنلىگۈچى' }, { status: 400 });
+    return NextResponse.json({ error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 400 });
   } catch (error: any) {
     console.error('Translate API Error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 500 });
   }
 }

@@ -13,17 +13,14 @@ import {
   User, 
   Sparkles, 
   RefreshCw,
-  UserCheck,
-  KeyRound
+  UserCheck
 } from 'lucide-react';
-import { ApiKeyModal } from '@/components/ApiKeyModal';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  isApiKeyError?: boolean;
 }
 
 export default function ChatPage() {
@@ -40,7 +37,6 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState('general');
-  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,20 +111,15 @@ export default function ChatPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        const isAuthError = response.status === 401 || data.isApiKeyMissing || (data.error && data.error.includes('401'));
         setMessages((prev) => [
           ...prev,
           {
             id: 'err-' + Date.now(),
             role: 'assistant',
-            content: data.message || data.error || 'OpenRouter API ئاچقۇچى كىرگۈزۈلمىگەن ياكى ئىناۋەتسىز.',
+            content: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
             timestamp: Date.now(),
-            isApiKeyError: isAuthError,
           },
         ]);
-        if (isAuthError) {
-          setApiKeyModalOpen(true);
-        }
         return;
       }
 
@@ -158,7 +149,7 @@ export default function ChatPage() {
         {
           id: 'err-' + Date.now(),
           role: 'assistant',
-          content: `⚠️ خاتالىق كۆرۈلدى: ${err.message}`,
+          content: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
           timestamp: Date.now(),
         },
       ]);
@@ -254,21 +245,8 @@ export default function ChatPage() {
               >
                 <div className="whitespace-pre-wrap select-text">{m.content}</div>
 
-                {/* If API Key is missing or invalid */}
-                {m.isApiKeyError && (
-                  <div className="pt-2 mt-2 border-t border-amber-500/20">
-                    <button
-                      onClick={() => setApiKeyModalOpen(true)}
-                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-xs font-semibold transition"
-                    >
-                      <KeyRound className="w-3.5 h-3.5 text-amber-300" />
-                      <span>{t.enterKeyNow}</span>
-                    </button>
-                  </div>
-                )}
-
                 {/* Actions for Assistant */}
-                {!isUser && !m.isApiKeyError && (
+                {!isUser && (
                   <div className="pt-2.5 flex items-center gap-3 border-t border-white/[0.06] text-slate-400 text-xs">
                     <button
                       onClick={() => handleCopy(m.id, m.content)}
@@ -332,12 +310,6 @@ export default function ChatPage() {
           </button>
         </div>
       </form>
-
-      <ApiKeyModal
-        isOpen={apiKeyModalOpen}
-        onClose={() => setApiKeyModalOpen(false)}
-        initialMessage={t.apiKeyModalPrompt}
-      />
     </div>
   );
 }

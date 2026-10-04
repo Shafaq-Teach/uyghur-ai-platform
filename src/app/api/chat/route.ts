@@ -25,11 +25,10 @@ export async function POST(req: NextRequest) {
       if (!cleanOpenRouterKey || cleanOpenRouterKey.length < 8) {
         return NextResponse.json(
           { 
-            error: 'API_KEY_REQUIRED',
-            message: `OpenRouter API ئاچقۇچى كىرگۈزۈلمىگەن. تاللانغان «${model}» مودېلىنى ئىشلىتىش ئۈچۈن OpenRouter API ئاچقۇچىڭىزنى كىرگۈزۈڭ.`,
-            isApiKeyMissing: true,
+            error: 'TEMPORARY_ERROR',
+            message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
           },
-          { status: 401 }
+          { status: 503 }
         );
       }
 
@@ -75,11 +74,10 @@ export async function POST(req: NextRequest) {
         if (response.status === 401) {
           return NextResponse.json(
             { 
-              error: 'API_KEY_INVALID',
-              message: 'OpenRouter API ئاچقۇچى تېخى كىرگۈزۈلمىگەن ياكى ئىناۋەتسىز (401). مەرھەمەت قىلىپ توغرا API ئاچقۇچىڭىزنى چاپلاڭ.',
-              isApiKeyMissing: true,
+              error: 'TEMPORARY_ERROR',
+              message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
             },
-            { status: 401 }
+            { status: 503 }
           );
         }
         if (response.status === 400 && errorText.includes('decisions model')) {
@@ -118,11 +116,10 @@ export async function POST(req: NextRequest) {
       if (!cleanGeminiKey || cleanGeminiKey.length < 8) {
         return NextResponse.json(
           { 
-            error: 'API_KEY_REQUIRED',
-            message: `Gemini API ئاچقۇچى تېخى تەڭشەلمىگەن. تاللانغان «${model}» مودېلىنى ئىشلىتىش ئۈچۈن Google Gemini API ئاچقۇچىڭىزنى كىرگۈزۈڭ.`,
-            isApiKeyMissing: true,
+            error: 'TEMPORARY_ERROR',
+            message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
           },
-          { status: 401 }
+          { status: 503 }
         );
       }
 
@@ -178,11 +175,10 @@ export async function POST(req: NextRequest) {
         if (response.status === 400 || response.status === 403) {
           return NextResponse.json(
             { 
-              error: 'API_KEY_INVALID',
-              message: 'Gemini API ئاچقۇچى ئىناۋەتسىز ياكى رەت قىلىندى.',
-              isApiKeyMissing: true,
+              error: 'TEMPORARY_ERROR',
+              message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
             },
-            { status: response.status }
+            { status: 503 }
           );
         }
 
@@ -207,9 +203,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ reply });
     }
 
-    return NextResponse.json({ error: 'نامەلۇم تەمىنلىگۈچى' }, { status: 400 });
+    return NextResponse.json({ error: 'TEMPORARY_ERROR', message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 400 });
   } catch (error: any) {
     console.error('Chat API Error:', error);
-    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'TEMPORARY_ERROR', message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 500 });
   }
 }

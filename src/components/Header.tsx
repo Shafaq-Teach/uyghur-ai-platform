@@ -277,16 +277,6 @@ export const Header: React.FC = () => {
               </Link>
             );
           })}
-          <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between px-2">
-            <Link
-              href="/settings"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-medium py-1"
-            >
-              <KeyRound className="w-4 h-4" />
-              <span>{hasKeys ? t.mobileApiReady : t.mobileApiSet}</span>
-            </Link>
-          </div>
         </div>
       )}
     </header>

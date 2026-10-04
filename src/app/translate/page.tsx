@@ -105,7 +105,7 @@ export default function TranslatePage() {
         },
       });
     } catch (err: any) {
-      setTranslatedText(`⚠️ خاتالىق: ${err.message}`);
+      setTranslatedText('ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.');
     } finally {
       setLoading(false);
     }
