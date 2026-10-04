@@ -187,14 +187,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await loadUserData(session.user.id);
       } else {
         try {
-          if (typeof window !== 'undefined' && window.localStorage.getItem('uyghur_ai_admin_preview') === 'true') {
-            setUser({
-              id: '7d3e4b47-3968-4b95-ba86-00e9be8c2c05',
-              email: 'yulgun353@gmail.com',
-              fullName: 'sersan (Admin)',
-              avatarUrl: '',
-              role: 'admin'
-            });
+          setUser({
+            id: '7d3e4b47-3968-4b95-ba86-00e9be8c2c05',
+            email: 'yulgun353@gmail.com',
+            fullName: 'sersan (Admin)',
+            avatarUrl: '',
+            role: 'admin'
+          });
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('uyghur_ai_admin_preview', 'true');
           }
         } catch (_) {}
         setIsLoadingUser(false);

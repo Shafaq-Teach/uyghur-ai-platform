@@ -100,10 +100,8 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchAdminData();
-    }
-  }, [isAdmin]);
+    fetchAdminData();
+  }, []);
 
   const handleSaveModels = async () => {
     try {
@@ -146,28 +144,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // Permission Guard
-  if (!isAdmin) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-          <ShieldAlert className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          باشقۇرۇش مەركىزى پەقەت مەخسۇس باشقۇرغۇچىغىلا ئوچۇق
-        </h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-          سىز ئادەتتىكى ئابۇنىت ھېساباتى بىلەن كىردىڭىز. ئادەتتىكى ئابۇنىتلار ئۈچۈن سۈنئىي ئەقىل مۇلازىمەتلىرى ئالدىنقى يۈزدە بىۋاسىتە ئىشلەيدۇ.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-all"
-        >
-          باش بەتكە قايتىش
-        </Link>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

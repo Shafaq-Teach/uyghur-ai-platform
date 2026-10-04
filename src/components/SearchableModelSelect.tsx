@@ -5,6 +5,8 @@ import {
   Search, 
   Check, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   X, 
   Sparkles, 
   Cpu, 
@@ -47,12 +49,17 @@ export const SearchableModelSelect: React.FC<Props> = ({
   const { t, lang } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'gemini' | 'openrouter' | 'free' | 'image' | 'reasoning'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'gemini' | 'openrouter' | 'free' | 'image' | 'reasoning' | 'tts'>('all');
   const [models, setModels] = useState<ModelItem[]>(cachedGlobalModels || []);
   const [loading, setLoading] = useState(!cachedGlobalModels);
-  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
+  const [alignH, setAlignH] = useState<'right' | 'left'>('right');
+  const [alignV, setAlignV] = useState<'bottom' | 'top'>('bottom');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
 
   const SPECIAL_MODELS: ModelItem[] = [
     {
@@ -141,6 +148,64 @@ export const SearchableModelSelect: React.FC<Props> = ({
     };
   }, [isOpen]);
 
+  // Dynamically calculate dropdown position relative to screen bounds
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // In RTL or narrow screens, if right-aligned panel overflows left side of window:
+      if (rect.right - 460 < 16) {
+        setAlignH('left');
+      } else {
+        setAlignH('right');
+      }
+
+      // If space below trigger is constrained, flip dropdown to show above
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < 420 && spaceAbove > spaceBelow) {
+        setAlignV('top');
+      } else {
+        setAlignV('bottom');
+      }
+    }
+  }, [isOpen]);
+
+  // Tab scroll helper functions (smooth right/left sliding)
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (!tabsRef.current) return;
+    const offset = direction === 'left' ? -160 : 160;
+    tabsRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
+
+  const handleTabsMouseDown = (e: React.MouseEvent) => {
+    if (!tabsRef.current) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - tabsRef.current.offsetLeft;
+    scrollLeftRef.current = tabsRef.current.scrollLeft;
+  };
+
+  const handleTabsMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !tabsRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - tabsRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    tabsRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleTabsMouseUpOrLeave = () => {
+    isDraggingRef.current = false;
+  };
+
+  const handleTabsWheel = (e: React.WheelEvent) => {
+    if (!tabsRef.current) return;
+    if (e.deltaY !== 0) {
+      tabsRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
   // Find currently selected model
   const selectedModel = useMemo(() => {
     return models.find((m) => m.id === value) || {
@@ -169,6 +234,9 @@ export const SearchableModelSelect: React.FC<Props> = ({
       } else if (activeTab === 'reasoning') {
         const isReason = m.id.includes('r1') || m.id.includes('o1') || m.id.includes('o3') || m.id.includes('thinking') || m.id.includes('pro');
         if (!isReason) return false;
+      } else if (activeTab === 'tts') {
+        const isTTS = m.id.includes('tts') || m.id.includes('speech') || m.id.includes('audio');
+        if (!isTTS) return false;
       }
 
       // Search query filter
@@ -237,14 +305,17 @@ export const SearchableModelSelect: React.FC<Props> = ({
         </div>
       </button>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown Panel with Dynamic Viewport Bounds */}
       {isOpen && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-2 w-full min-w-[320px] sm:min-w-[420px] max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.12] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[460px] animate-fade-in backdrop-blur-2xl"
-          style={{ right: 0 }}
+          className={`absolute z-50 w-[94vw] sm:w-[480px] max-w-[calc(100vw-24px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.12] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[480px] animate-fade-in backdrop-blur-2xl ${
+            alignV === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+          } ${
+            alignH === 'left' ? 'left-0' : 'right-0'
+          }`}
         >
-          {/* Search Box */}
+          {/* Search Box & Sliding Category Tabs */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 space-y-2">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
@@ -267,73 +338,118 @@ export const SearchableModelSelect: React.FC<Props> = ({
               )}
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 custom-scrollbar text-[11px]">
+            {/* Filter Tabs Horizontal Slider (ئوڭ-سولغا سىيرىش) */}
+            <div className="relative flex items-center group/slider mt-1">
+              {/* Slide Left Button */}
               <button
                 type="button"
-                onClick={() => setActiveTab('all')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'all'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => scrollTabs('left')}
+                title="سولغا سىيرىش"
+                className="shrink-0 p-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-800/90 hover:bg-indigo-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm me-1.5 z-10"
               >
-                {t.tabAllModels} ({models.length})
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
+
+              {/* Scrollable & Draggable Tabs Track */}
+              <div
+                ref={tabsRef}
+                onMouseDown={handleTabsMouseDown}
+                onMouseMove={handleTabsMouseMove}
+                onMouseUp={handleTabsMouseUpOrLeave}
+                onMouseLeave={handleTabsMouseUpOrLeave}
+                onWheel={handleTabsWheel}
+                className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 custom-scrollbar text-[11px] select-none scroll-smooth cursor-grab active:cursor-grabbing flex-1"
+                style={{
+                  scrollbarWidth: 'thin',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('all')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'all'
+                      ? 'bg-indigo-600 text-white font-semibold ring-2 ring-indigo-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabAllModels} ({models.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('gemini')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'gemini'
+                      ? 'bg-blue-600 text-white font-semibold ring-2 ring-blue-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabGemini}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('openrouter')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'openrouter'
+                      ? 'bg-purple-600 text-white font-semibold ring-2 ring-purple-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabOpenRouter}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('free')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'free'
+                      ? 'bg-emerald-600 text-white font-semibold ring-2 ring-emerald-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabFree}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('image')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'image'
+                      ? 'bg-rose-600 text-white font-semibold ring-2 ring-rose-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabImage}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('reasoning')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'reasoning'
+                      ? 'bg-amber-600 text-white font-semibold ring-2 ring-amber-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {t.tabReasoning}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tts')}
+                  className={`px-3 py-1.5 rounded-xl font-medium whitespace-nowrap shrink-0 transition shadow-sm ${
+                    activeTab === 'tts'
+                      ? 'bg-cyan-600 text-white font-semibold ring-2 ring-cyan-400/40'
+                      : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  ئاۋاز (TTS)
+                </button>
+              </div>
+
+              {/* Slide Right Button */}
               <button
                 type="button"
-                onClick={() => setActiveTab('gemini')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'gemini'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={() => scrollTabs('right')}
+                title="ئوڭغا سىيرىش"
+                className="shrink-0 p-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-800/90 hover:bg-indigo-600 hover:text-white text-slate-600 dark:text-slate-300 transition shadow-sm ms-1.5 z-10"
               >
-                {t.tabGemini}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('openrouter')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'openrouter'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t.tabOpenRouter}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('free')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'free'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t.tabFree}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('image')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'image'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t.tabImage}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('reasoning')}
-                className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
-                  activeTab === 'reasoning'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t.tabReasoning}
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

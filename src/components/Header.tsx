@@ -44,7 +44,7 @@ export const Header: React.FC = () => {
     { href: '/tts', label: t.navTts, icon: Volume2 },
     { href: '/ad-video', label: t.navVideo, icon: Video },
     { href: '/history', label: t.navHistory, icon: History },
-    ...(isAdmin ? [{ href: '/admin', label: 'باشقۇرۇش سۇپىسى', icon: ShieldCheck, isAdmin: true }] : []),
+    { href: '/admin', label: 'باشقۇرۇش سۇپىسى', icon: ShieldCheck, isAdmin: true },
   ];
 
   const hasKeys = !!settings?.openRouterApiKey || !!settings?.geminiApiKey;
