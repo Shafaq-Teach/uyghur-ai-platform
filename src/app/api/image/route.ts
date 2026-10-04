@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
 
+export const runtime = 'edge';
 
 async function translatePromptToEnglish(prompt: string, geminiKey?: string, openRouterKey?: string): Promise<string> {
   const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
