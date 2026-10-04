@@ -53,6 +53,7 @@ export default function ImagePage() {
     if (!prompt.trim() || loading || imageLoading) return;
     setLoading(true);
     setImageLoading(true);
+    setResultImage(null);
     setError('');
 
     try {
@@ -232,8 +233,8 @@ export default function ImagePage() {
             </div>
 
             <div className="flex-1 my-4 flex items-center justify-center overflow-hidden rounded-2xl bg-[#06070a] border border-white/[0.06] relative">
-              {loading || imageLoading ? (
-                <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+              {(loading || imageLoading) && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 p-6 text-center bg-[#06070a]/90 backdrop-blur-sm">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-full border-2 border-rose-500/20 border-t-rose-500 animate-spin" />
                     <Sparkles className="w-6 h-6 text-rose-400 absolute inset-0 m-auto animate-pulse" />
@@ -243,15 +244,18 @@ export default function ImagePage() {
                   </span>
                   <span className="text-[11px] text-slate-500 font-mono">{settings.featureModels.image}</span>
                 </div>
-              ) : resultImage ? (
+              )}
+
+              {resultImage ? (
                 <img
+                  key={resultImage}
                   src={resultImage}
                   alt={prompt}
                   onLoad={() => setImageLoading(false)}
                   onError={() => setImageLoading(false)}
-                  className="max-h-[460px] w-auto h-auto object-contain rounded-xl shadow-2xl transition duration-300 hover:scale-[1.01]"
+                  className={`max-h-[460px] w-auto h-auto object-contain rounded-xl shadow-2xl transition duration-500 hover:scale-[1.01] ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                 />
-              ) : (
+              ) : !loading && (
                 <div className="flex flex-col items-center justify-center gap-2.5 p-8 text-center text-slate-500 text-xs">
                   <Layers className="w-10 h-10 text-slate-700" />
                   <p>{t.imagePlaceholderPrompt}</p>
