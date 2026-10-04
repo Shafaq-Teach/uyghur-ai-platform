@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
 
-export const runtime = 'edge';
 
-async function translatePromptToEnglish(prompt: string, geminiKey?: string): Promise<string> {
+async function translatePromptToEnglish(prompt: string, geminiKey?: string, openRouterKey?: string): Promise<string> {
   const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
   if (!isUyghurOrNonLatin) {
     return prompt.trim();
@@ -11,8 +10,52 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string): Pro
 
   let englishText = '';
 
-  // Tier 1: Try Google Gemini with a 3.5s timeout
-  if (geminiKey) {
+  // Tier 1: Try OpenRouter (blazing fast, highly accurate Uyghur translation)
+  if (openRouterKey) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://uyghur-ai.local',
+          'X-Title': 'Uyghur AI Image Studio',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert Uyghur-to-English translator for AI image generation (Flux/Stable Diffusion). Translate the Uyghur prompt into a vivid, descriptive, high-quality English image prompt. Return ONLY the direct English translation without preamble, without markdown, without quotes.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        }),
+      });
+      clearTimeout(timeoutId);
+
+      if (orRes.ok) {
+        const orData = await orRes.json();
+        const content = orData.choices?.[0]?.message?.content?.trim();
+        if (content && !/[\u0600-\u06FF]/.test(content)) {
+          englishText = content.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '');
+          console.log('OpenRouter prompt translation success:', englishText);
+        }
+      }
+    } catch (err) {
+      console.warn('OpenRouter translation error:', err);
+    }
+  }
+
+  // Tier 2: Try Google Gemini direct if available
+  if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && geminiKey) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -50,26 +93,7 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string): Pro
         }
       }
     } catch (err) {
-      console.warn('Gemini translation error/timeout, falling back to GTX:', err);
-    }
-  }
-
-  // Tier 2: Instant Google Translate GTX fallback (100% reliable, zero key needed)
-  if (!englishText || /[\u0600-\u06FF]/.test(englishText)) {
-    try {
-      const gtxRes = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=ug&tl=en&dt=t&q=${encodeURIComponent(prompt)}`
-      );
-      if (gtxRes.ok) {
-        const gtxData = await gtxRes.json();
-        const gtxText = gtxData[0]?.map((chunk: any) => chunk[0]).join(' ').trim();
-        if (gtxText && !/[\u0600-\u06FF]/.test(gtxText)) {
-          englishText = gtxText;
-          console.log('GTX prompt translation success:', englishText);
-        }
-      }
-    } catch (err) {
-      console.warn('GTX translation error:', err);
+      console.warn('Gemini translation error/timeout:', err);
     }
   }
 
@@ -148,8 +172,7 @@ export async function POST(req: NextRequest) {
     };
 
     // 1. Automatic Uyghur/Non-Latin -> English Translation for AI Image Models
-    const englishPrompt = await translatePromptToEnglish(prompt, effectiveGeminiKey);
-
+    const englishPrompt = await translatePromptToEnglish(prompt, effectiveGeminiKey, effectiveOpenRouterKey);
 
     const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
     const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
@@ -201,7 +224,7 @@ export async function POST(req: NextRequest) {
 
     // 3. High-Quality Neural AI Image Generation (Real AI Diffusion matching exact prompt)
     const seed = Math.floor(Math.random() * 1000000);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&nologo=true`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&model=flux&nologo=true`;
 
     return NextResponse.json({
       imageUrl: pollinationsUrl,

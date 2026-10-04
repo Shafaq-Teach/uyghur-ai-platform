@@ -22,6 +22,7 @@ export default function ImagePage() {
   const [style, setStyle] = useState('photorealistic');
   const [size, setSize] = useState('medium');
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [translatedPrompt, setTranslatedPrompt] = useState('');
@@ -49,8 +50,9 @@ export default function ImagePage() {
   ];
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || loading) return;
+    if (!prompt.trim() || loading || imageLoading) return;
     setLoading(true);
+    setImageLoading(true);
     setError('');
 
     try {
@@ -94,6 +96,7 @@ export default function ImagePage() {
     } catch (err: any) {
       console.error('Image generation error:', err);
       setError(err.message || 'خاتالىق يۈز بەردى');
+      setImageLoading(false);
     } finally {
       setLoading(false);
     }
@@ -141,7 +144,7 @@ export default function ImagePage() {
                 <div className="flex items-center justify-between text-rose-300 font-semibold text-[11px]">
                   <span>سۈنئىي ئەقىل تەرجىمە قىلغان پىرومپت (AI Translated Prompt):</span>
                   <span className="text-[10px] font-mono bg-rose-500/20 px-2 py-0.5 rounded text-rose-200">
-                    Gemini 3.8
+                    AI Neural
                   </span>
                 </div>
                 <p className="text-slate-200 font-mono text-[11px] leading-relaxed bg-black/40 p-2.5 rounded-xl border border-white/[0.05]" dir="ltr">
@@ -203,11 +206,11 @@ export default function ImagePage() {
           {/* Submit Button */}
           <button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || loading}
+            disabled={!prompt.trim() || loading || imageLoading}
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-indigo-600 hover:opacity-95 disabled:opacity-40 text-white font-bold text-sm shadow-xl shadow-rose-600/25 transition-all duration-200 border border-rose-400/30 hover:scale-[1.01] active:scale-[0.99]"
           >
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            <span>{loading ? t.loading : t.generateImageBtn}</span>
+            {loading || imageLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            <span>{loading || imageLoading ? t.loading : t.generateImageBtn}</span>
           </button>
 
           {error && (
@@ -229,19 +232,23 @@ export default function ImagePage() {
             </div>
 
             <div className="flex-1 my-4 flex items-center justify-center overflow-hidden rounded-2xl bg-[#06070a] border border-white/[0.06] relative">
-              {loading ? (
+              {loading || imageLoading ? (
                 <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-full border-2 border-rose-500/20 border-t-rose-500 animate-spin" />
                     <Sparkles className="w-6 h-6 text-rose-400 absolute inset-0 m-auto animate-pulse" />
                   </div>
-                  <span className="text-xs text-slate-300 font-medium">{t.imageGenerating}</span>
+                  <span className="text-xs text-slate-300 font-medium">
+                    {loading ? t.imageGenerating : 'سۈنئىي ئەقىل رەسىمنى سىزىپ چۈشۈرۈۋاتىدۇ...'}
+                  </span>
                   <span className="text-[11px] text-slate-500 font-mono">{settings.featureModels.image}</span>
                 </div>
               ) : resultImage ? (
                 <img
                   src={resultImage}
                   alt={prompt}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
                   className="max-h-[460px] w-auto h-auto object-contain rounded-xl shadow-2xl transition duration-300 hover:scale-[1.01]"
                 />
               ) : (
