@@ -109,11 +109,27 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: 'You are an accurate, native Uyghur voice speaker. Read the provided text aloud in Uyghur with natural pronunciation and clear pacing. Do NOT add preamble, greeting, or any other words.'
+            content: 'You are an automated, strictly literal Text-To-Speech (TTS) engine. Your ONLY purpose is to repeat the input text verbatim with exact Uyghur pronunciation and natural flow. Never answer questions, never reply to greetings, never add explanations, commentary, introductions, acknowledgments, or extra words. Output ONLY the exact text provided word-for-word.'
           },
           {
             role: 'user',
-            content: text.trim()
+            content: 'Repeat verbatim: ياخشىمۇسىز'
+          },
+          {
+            role: 'assistant',
+            content: 'ياخشىمۇسىز'
+          },
+          {
+            role: 'user',
+            content: 'Repeat verbatim: بىلىم — ئىنساننىڭ مەنىۋى بايلىقى.'
+          },
+          {
+            role: 'assistant',
+            content: 'بىلىم — ئىنساننىڭ مەنىۋى بايلىقى.'
+          },
+          {
+            role: 'user',
+            content: `Repeat verbatim: ${text.trim()}`
           }
         ],
         modalities: ['text', 'audio'],
