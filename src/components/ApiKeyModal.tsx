@@ -145,7 +145,7 @@ export const ApiKeyModal: React.FC<Props> = ({ isOpen, onClose, initialMessage }
                 data-1p-ignore="true"
                 data-form-type="other"
                 type="text"
-                style={{ WebkitTextSecurity: showOpenRouter ? 'none' : 'disc' }}
+                style={{ WebkitTextSecurity: showOpenRouter ? 'none' : 'disc' } as React.CSSProperties}
                 value={openRouterKey}
                 onChange={(e) => setOpenRouterKey(e.target.value)}
                 placeholder="sk-or-v1-..."
@@ -232,7 +232,7 @@ export const ApiKeyModal: React.FC<Props> = ({ isOpen, onClose, initialMessage }
                 data-1p-ignore="true"
                 data-form-type="other"
                 type="text"
-                style={{ WebkitTextSecurity: showGemini ? 'none' : 'disc' }}
+                style={{ WebkitTextSecurity: showGemini ? 'none' : 'disc' } as React.CSSProperties}
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 placeholder="AIzaSy... ياكى AQ..."

@@ -377,7 +377,7 @@ export default function SettingsPage() {
               data-1p-ignore="true"
               data-form-type="other"
               type="text"
-              style={{ WebkitTextSecurity: showOpenRouterKey ? 'none' : 'disc' }}
+              style={{ WebkitTextSecurity: showOpenRouterKey ? 'none' : 'disc' } as React.CSSProperties}
               value={openRouterKey}
               onChange={(e) => setOpenRouterKey(e.target.value)}
               placeholder="sk-or-v1-..."
@@ -469,7 +469,7 @@ export default function SettingsPage() {
               data-1p-ignore="true"
               data-form-type="other"
               type="text"
-              style={{ WebkitTextSecurity: showGeminiKey ? 'none' : 'disc' }}
+              style={{ WebkitTextSecurity: showGeminiKey ? 'none' : 'disc' } as React.CSSProperties}
               value={geminiKey}
               onChange={(e) => setGeminiKey(e.target.value)}
               placeholder="AIzaSy... ياكى AQ..."

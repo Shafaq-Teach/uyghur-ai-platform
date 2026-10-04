@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { 
@@ -9,8 +9,7 @@ import {
   Pause, 
   RotateCcw, 
   Download, 
-  Sparkles, 
-  Sliders, 
+  RefreshCw,
   Music, 
   Radio
 } from 'lucide-react';
@@ -24,6 +23,7 @@ export default function TtsPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -41,8 +41,9 @@ export default function TtsPage() {
   ];
 
   const handleGenerateAndPlay = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || loading) return;
     setLoading(true);
+    setError('');
 
     try {
       const response = await fetch('/api/tts', {
@@ -61,22 +62,22 @@ export default function TtsPage() {
       });
 
       const data = await response.json();
-      if (data.audioUrl) {
-        setAudioUrl(data.audioUrl);
+      if (!response.ok) {
+        throw new Error(data.error || 'ئاۋاز ھاسىل قىلىش مەغلۇپ بولدى');
       }
 
-      // Play via Web Speech API or Audio Element
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = speed;
-        utterance.pitch = pitch;
-
-        utterance.onstart = () => setIsPlaying(true);
-        utterance.onend = () => setIsPlaying(false);
-        utterance.onerror = () => setIsPlaying(false);
-
-        window.speechSynthesis.speak(utterance);
+      if (data.audioUrl) {
+        setAudioUrl(data.audioUrl);
+        if (audioRef.current) {
+          audioRef.current.src = data.audioUrl;
+          audioRef.current.playbackRate = speed;
+          try {
+            await audioRef.current.play();
+            setIsPlaying(true);
+          } catch (playErr) {
+            console.warn('Playback error or blocked by browser policy:', playErr);
+          }
+        }
       }
 
       // Save to history
@@ -93,16 +94,14 @@ export default function TtsPage() {
         },
       });
     } catch (err: any) {
-      alert('ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.');
+      console.error('TTS execution error:', err);
+      setError(err.message || 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleStop = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -110,11 +109,25 @@ export default function TtsPage() {
     setIsPlaying(false);
   };
 
-  const handleDownloadSample = () => {
-    // Generate a simple audio tone WAV file data uri for demonstration download
-    const sampleAudioUri = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  const handleReplay = async () => {
+    if (audioRef.current && audioUrl) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.playbackRate = speed;
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (e) {
+        console.warn('Replay error:', e);
+      }
+    } else {
+      handleGenerateAndPlay();
+    }
+  };
+
+  const handleDownload = () => {
+    if (!audioUrl) return;
     const a = document.createElement('a');
-    a.href = audioUrl || sampleAudioUri;
+    a.href = audioUrl;
     a.download = `uyghur-speech-${Date.now()}.wav`;
     document.body.appendChild(a);
     a.click();
@@ -123,6 +136,16 @@ export default function TtsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Invisible real HTML Audio element for playback */}
+      <audio
+        ref={audioRef}
+        onEnded={() => setIsPlaying(false)}
+        onError={() => setIsPlaying(false)}
+        onPause={() => setIsPlaying(false)}
+        onPlay={() => setIsPlaying(true)}
+        className="hidden"
+      />
+
       {/* Model Selector Bar */}
       <ModelBar feature="tts" featureTitle={t.fTtsTitle} />
 
@@ -133,7 +156,9 @@ export default function TtsPage() {
             <Volume2 className="w-4 h-4 text-amber-400" />
             <span>{t.ttsInputLabel}</span>
           </label>
-          <span className="text-[11px] text-slate-400 font-mono bg-white/[0.03] px-2 py-0.5 rounded border border-white/[0.05]">{text.length} {t.charCount}</span>
+          <span className="text-[11px] text-slate-400 font-mono bg-white/[0.03] px-2 py-0.5 rounded border border-white/[0.05]">
+            {text.length} {t.charCount}
+          </span>
         </div>
 
         <textarea
@@ -158,6 +183,12 @@ export default function TtsPage() {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium animate-fade-in">
+          {error}
+        </div>
+      )}
 
       {/* Voice Controls Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -202,7 +233,13 @@ export default function TtsPage() {
                 max="2.0"
                 step="0.25"
                 value={speed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setSpeed(val);
+                  if (audioRef.current) {
+                    audioRef.current.playbackRate = val;
+                  }
+                }}
                 className="w-full accent-amber-500 bg-white/[0.05] rounded-lg cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-500 font-mono">
@@ -238,8 +275,8 @@ export default function TtsPage() {
                 disabled={!text.trim() || loading}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 hover:opacity-95 disabled:opacity-40 text-white font-bold text-sm shadow-xl shadow-amber-600/25 transition-all duration-200 border border-amber-400/30 hover:scale-[1.01] active:scale-[0.99]"
               >
-                <Play className="w-4 h-4 fill-white" />
-                <span>{t.generateAudioBtn}</span>
+                {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
+                <span>{loading ? 'سۈنئىي ئەقىل ئاۋاز چىقىرىۋاتىدۇ...' : t.generateAudioBtn}</span>
               </button>
             ) : (
               <button
@@ -288,8 +325,9 @@ export default function TtsPage() {
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2">
             <button
-              onClick={handleGenerateAndPlay}
-              className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-amber-400 border border-white/[0.08] hover:border-amber-500/40 transition"
+              onClick={handleReplay}
+              disabled={loading}
+              className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-amber-400 border border-white/[0.08] hover:border-amber-500/40 transition disabled:opacity-40"
               title={t.replayAudio}
             >
               <RotateCcw className="w-4 h-4" />
@@ -297,8 +335,9 @@ export default function TtsPage() {
           </div>
 
           <button
-            onClick={handleDownloadSample}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 hover:text-white text-xs font-medium border border-white/[0.08] hover:border-amber-500/40 transition"
+            onClick={handleDownload}
+            disabled={!audioUrl}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 hover:text-white text-xs font-medium border border-white/[0.08] hover:border-amber-500/40 transition disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5 text-amber-400" />
             <span>{t.downloadAudioWav}</span>
