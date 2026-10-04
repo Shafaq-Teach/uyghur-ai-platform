@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       }
       formattedMessages.push(...messages);
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${cleanOpenRouterKey}`,
@@ -52,6 +52,23 @@ export async function POST(req: NextRequest) {
           messages: formattedMessages,
         }),
       });
+
+      // If user-provided key failed with 401, try falling back to the server's Supabase master key
+      if (!response.ok && response.status === 401 && serverConfig.openRouterKey && cleanOpenRouterKey !== serverConfig.openRouterKey) {
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${serverConfig.openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Platform',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: formattedMessages,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

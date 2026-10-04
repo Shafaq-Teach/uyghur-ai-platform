@@ -197,6 +197,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (typeof window !== 'undefined') {
             window.localStorage.setItem('uyghur_ai_admin_preview', 'true');
           }
+          await loadUserData('7d3e4b47-3968-4b95-ba86-00e9be8c2c05');
         } catch (_) {}
         setIsLoadingUser(false);
       }
@@ -213,11 +214,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const savedSettings = localStorage.getItem('uyghur_ai_settings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        // Repair corrupted openRouterApiKey if it was duplicated by browser autofill (Gemini key copied into OpenRouter)
+        // Repair corrupted or revoked keys from localStorage
         if (
           parsed.openRouterApiKey &&
-          (parsed.openRouterApiKey.startsWith('AQ.') || parsed.openRouterApiKey.startsWith('AIza')) &&
-          parsed.openRouterApiKey === parsed.geminiApiKey
+          (
+            parsed.openRouterApiKey.startsWith('sk-or-v1-f027') ||
+            parsed.openRouterApiKey.startsWith('sk-or-v1-f0d2') ||
+            ((parsed.openRouterApiKey.startsWith('AQ.') || parsed.openRouterApiKey.startsWith('AIza')) && parsed.openRouterApiKey === parsed.geminiApiKey)
+          )
         ) {
           parsed.openRouterApiKey = '';
           try {

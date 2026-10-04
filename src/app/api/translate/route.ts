@@ -69,7 +69,7 @@ CRITICAL RULES:
         });
       }
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${cleanOpenRouterKey}`,
@@ -86,6 +86,27 @@ CRITICAL RULES:
           temperature: 0.3,
         }),
       });
+
+      // If user-provided key failed with 401, try falling back to the server's Supabase master key
+      if (!response.ok && response.status === 401 && serverConfig.openRouterKey && cleanOpenRouterKey !== serverConfig.openRouterKey) {
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${serverConfig.openRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Translator',
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text },
+            ],
+            temperature: 0.3,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

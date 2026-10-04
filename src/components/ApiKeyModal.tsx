@@ -275,14 +275,37 @@ export const ApiKeyModal: React.FC<Props> = ({ isOpen, onClose, initialMessage }
           </div>
 
           {/* Buttons */}
-          <div className="pt-3 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
-            >
-              {t.cancel}
-            </button>
+          <div className="pt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenRouterKey('');
+                  setGeminiKey('');
+                  updateSettings({
+                    openRouterApiKey: '',
+                    geminiApiKey: '',
+                  });
+                  setSaved(true);
+                  setTimeout(() => {
+                    setSaved(false);
+                    onClose();
+                  }, 800);
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 border border-indigo-500/20 transition flex items-center gap-1.5"
+                title="سۇپابەستىكى مەركىزىي ئاچقۇچ ئارقىلىق ئىشلىتىش"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>سۇپابەس مەركىزىي ئاچقۇچىنى ئىشلىتىش</span>
+              </button>
+            </div>
 
             <button
               type="submit"
