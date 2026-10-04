@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
 
-export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const serverConfig = await getSystemConfigServer();
+    console.log('serverConfig keys:', {
+      hasOR: !!serverConfig.openRouterKey,
+      orPrefix: serverConfig.openRouterKey?.slice(0, 10),
+      hasGemini: !!serverConfig.geminiKey,
+      geminiPrefix: serverConfig.geminiKey?.slice(0, 10)
+    });
     const defaultModel = serverConfig.activeModels?.image || 'black-forest-labs/flux-1-schnell';
     const { 
       prompt, 
@@ -49,10 +54,51 @@ export async function POST(req: NextRequest) {
       minimalist: 'minimalist clean design, subtle shadows, elegant composition, muted pastel colors',
     };
 
-    const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
-    const enrichedPrompt = `${prompt}, ${styleModifier}, high quality, detailed masterpiece`;
+    // 1. Automatic Uyghur/Non-Latin -> English Translation for AI Image Models
+    let englishPrompt = prompt.trim();
+    const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
 
-    // 1. If OpenRouter Key is available
+    if (isUyghurOrNonLatin && effectiveGeminiKey) {
+      try {
+        console.log('Gemini translation request with key prefix:', effectiveGeminiKey?.slice(0, 10), 'prompt:', prompt);
+        const transRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${effectiveGeminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `You are an expert visual AI prompt engineer. Translate the following Uyghur image description into a vivid, accurate, highly detailed English text-to-image prompt. Only return the English translation, do not include explanations or quotes:\n\n${prompt}`,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }
+        );
+        console.log('Gemini trans status:', transRes.status);
+        if (transRes.ok) {
+          const transJson = await transRes.json();
+          const translated = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          console.log('Gemini translated:', translated);
+          if (translated) {
+            englishPrompt = translated.replace(/^["']|["']$/g, '');
+          }
+        } else {
+          console.log('Gemini trans failed text:', await transRes.text());
+        }
+      } catch (err) {
+        console.warn('Gemini prompt translation error:', err);
+      }
+    }
+
+    const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
+    const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
+
+    // 2. Try OpenRouter FLUX / SD if key is provided and active
     if (provider === 'openrouter' && effectiveOpenRouterKey) {
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -77,70 +123,36 @@ export async function POST(req: NextRequest) {
 
         if (response.ok) {
           const data = await response.json();
-          // Look for image data in choices
           const choice = data.choices?.[0];
           const imageUrl = choice?.message?.images?.[0]?.url || choice?.message?.content;
           if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('data:image'))) {
             return NextResponse.json({
               imageUrl,
+              originalPrompt: prompt,
+              translatedPrompt: englishPrompt,
               enhancedPrompt: enrichedPrompt,
               aspectRatio,
               model,
             });
           }
+        } else {
+          console.warn('OpenRouter image call failed with status:', response.status);
         }
       } catch (e) {
-        console.warn('OpenRouter image direct call failed, generating visual mockup', e);
+        console.warn('OpenRouter image direct call failed', e);
       }
     }
 
-    // 2. Direct Gemini Imagen 3
-    if (provider === 'gemini' && effectiveGeminiKey) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${effectiveGeminiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instances: [{ prompt: enrichedPrompt }],
-            parameters: {
-              sampleCount: 1,
-              aspectRatio: aspectRatio.replace(':', ':'),
-            },
-          }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const base64Img = data.predictions?.[0]?.bytesBase64Encoded;
-          if (base64Img) {
-            return NextResponse.json({
-              imageUrl: `data:image/png;base64,${base64Img}`,
-              enhancedPrompt: enrichedPrompt,
-              aspectRatio,
-              model: 'imagen-3.0-generate-002',
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Gemini Imagen call failed', e);
-      }
-    }
-
-    // 3. Fallback High-Quality Generator with Unsplash / AI placeholder matching the prompt
-    // This guarantees the user has a gorgeous visual result immediately for testing!
-    const encodedTopic = encodeURIComponent(prompt.slice(0, 40));
-    const randomSeed = Math.floor(Math.random() * 10000);
-    const mockImageUrl = `https://picsum.photos/seed/${randomSeed}/${dims.width}/${dims.height}`;
+    // 3. High-Quality Neural AI Image Generation (Real AI Diffusion matching exact prompt)
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enrichedPrompt)}?width=${dims.width}&height=${dims.height}`;
 
     return NextResponse.json({
-      imageUrl: mockImageUrl,
+      imageUrl: pollinationsUrl,
+      originalPrompt: prompt,
+      translatedPrompt: englishPrompt,
       enhancedPrompt: enrichedPrompt,
       aspectRatio,
-      model,
-      isDemo: !effectiveOpenRouterKey && !effectiveGeminiKey,
-      note: !effectiveOpenRouterKey
-        ? 'OpenRouter API ئاچقۇچى تېخى تەڭشەلمىگەنلىكى سەۋەبلىك ئەۋرىشكە رەسىم كۆرسىتىلدى. ئاچقۇچ كىرگۈزگەندە FLUX/SD ئارقىلىق رەسىم ھاسىل قىلىنىدۇ.'
-        : undefined,
+      model: model || 'black-forest-labs/flux-1-schnell',
     });
   } catch (error: any) {
     console.error('Image API Error:', error);

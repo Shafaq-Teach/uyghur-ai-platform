@@ -107,31 +107,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-10 py-2 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Admin Notice Banner */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-950/80 via-indigo-950/70 to-slate-900 border border-purple-500/30 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-400 shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white">سىز باشقۇرغۇچى كىملىكىدە (Admin)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">ئاچقۇچلار سۇپابەستە قوغدالغان</span>
-            </div>
-            <p className="text-xs text-purple-200/70 mt-0.5">
-              مودېللارنى تاللاش، كۈندىلىك نورما تەڭشىكى ۋە سىستېما تېلېمېترىيەسىنى كۆرۈش ئۈچۈن مەخسۇس ئارقا سۇپىغا كىرىڭ.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs transition shadow-md shadow-purple-600/25 shrink-0"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>باشقۇرۇش مەركىزىنى ئېچىش</span>
-        </Link>
-      </div>
-
       {/* Hero Cockpit Section */}
       <section className="relative py-10 sm:py-16 overflow-hidden rounded-3xl tech-card border border-slate-200 dark:border-white/[0.08] px-6 sm:px-12 text-center">
         {/* Subtle grid light lines */}

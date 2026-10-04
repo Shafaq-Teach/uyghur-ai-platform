@@ -44,7 +44,6 @@ export const Header: React.FC = () => {
     { href: '/tts', label: t.navTts, icon: Volume2 },
     { href: '/ad-video', label: t.navVideo, icon: Video },
     { href: '/history', label: t.navHistory, icon: History },
-    { href: '/admin', label: 'باشقۇرۇش سۇپىسى', icon: ShieldCheck, isAdmin: true },
   ];
 
   const hasKeys = !!settings?.openRouterApiKey || !!settings?.geminiApiKey;
@@ -140,7 +139,7 @@ export const Header: React.FC = () => {
 
                   {isAdmin && (
                     <Link
-                      href="/admin"
+                      href="/sensiz520"
                       onClick={() => setUserDropdownOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-500/20 transition border border-purple-500/30 mb-1"
                     >
