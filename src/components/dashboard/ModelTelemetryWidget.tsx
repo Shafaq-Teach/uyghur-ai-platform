@@ -11,45 +11,45 @@ import {
 } from 'lucide-react';
 
 export const ModelTelemetryWidget: React.FC = () => {
-  const { t, settings } = useApp();
+  const { t, settings, lang } = useApp();
 
   const hasOpenRouter = !!settings?.openRouterApiKey;
   const hasGemini = !!settings?.geminiApiKey;
 
   const engines = [
     {
-      name: 'Google Gemini Pro & Flash',
+      name: lang === 'ug' ? 'گۇگۇل گېمىنى تېز ۋە ئەلا مودېلى' : 'Google Gemini Pro & Flash',
       endpoint: 'api.generativeai.google.com',
-      flagship: 'gemini-3.8-flash / 2.5',
+      flagship: lang === 'ug' ? 'تېز سۈرئەتلىك ئەقلىي ماتور' : 'gemini-3.8-flash / 2.5',
       latency: '38ms',
-      status: hasGemini ? 'ONLINE' : 'KEY NEEDED',
+      status: hasGemini ? (lang === 'ug' ? 'نورمال' : 'ONLINE') : (lang === 'ug' ? 'ئاچقۇچ كەم' : 'KEY NEEDED'),
       statusType: hasGemini ? 'online' : 'warning',
       color: 'emerald',
     },
     {
-      name: 'OpenRouter Multi-Model Mesh',
+      name: lang === 'ug' ? 'ئوچۇق كۆپ تىللىق ئەقلىي مودېللار مەركىزى' : 'OpenRouter Multi-Model Mesh',
       endpoint: 'openrouter.ai/api/v1',
-      flagship: 'DeepSeek V3 / Claude 3.5 / Llama 3.3',
+      flagship: lang === 'ug' ? 'چوڭقۇر تەپەككۇر ۋە پاراڭ' : 'DeepSeek V3 / Claude 3.5 / Llama 3.3',
       latency: '115ms',
-      status: hasOpenRouter ? 'ONLINE' : 'KEY NEEDED',
+      status: hasOpenRouter ? (lang === 'ug' ? 'نورمال' : 'ONLINE') : (lang === 'ug' ? 'ئاچقۇچ كەم' : 'KEY NEEDED'),
       statusType: hasOpenRouter ? 'online' : 'warning',
       color: 'indigo',
     },
     {
-      name: 'Flux-1 Image Synthesis',
+      name: lang === 'ug' ? 'تېز سۈرئەتلىك سۈرەت ئىجادىيىتى' : 'Flux-1 Image Synthesis',
       endpoint: 'black-forest-labs/flux-1-schnell',
-      flagship: 'Hyper-Fast 4-Step Latent Diffusion',
+      flagship: lang === 'ug' ? 'يۇقىرى ئېنىقلىقتىكى تارقىلىشچان گېنېراتور' : 'Hyper-Fast 4-Step Latent Diffusion',
       latency: '1.8s',
-      status: hasOpenRouter ? 'ACTIVE' : 'KEY NEEDED',
+      status: hasOpenRouter ? (lang === 'ug' ? 'ئاكتىپ' : 'ACTIVE') : (lang === 'ug' ? 'ئاچقۇچ كەم' : 'KEY NEEDED'),
       statusType: hasOpenRouter ? 'online' : 'warning',
       color: 'purple',
     },
     {
-      name: 'Neural Uyghur & Multilingual TTS',
+      name: lang === 'ug' ? 'ئۇيغۇرچە ۋە كۆپ تىللىق تەبىئىي ئاۋاز' : 'Neural Uyghur & Multilingual TTS',
       endpoint: 'OpenAI TTS / Edge Speech',
-      flagship: 'Neural Speech Synthesizer',
+      flagship: lang === 'ug' ? 'تەبىئىي نۇتۇق بىرىكتۈرگۈچ' : 'Neural Speech Synthesizer',
       latency: '210ms',
-      status: 'READY',
+      status: lang === 'ug' ? 'تەييار' : 'READY',
       statusType: 'online',
       color: 'amber',
     },
@@ -98,7 +98,7 @@ export const ModelTelemetryWidget: React.FC = () => {
                   <div className="font-bold text-slate-900 dark:text-slate-200 truncate text-[12px]">
                     {eng.name}
                   </div>
-                  <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 truncate">
+                  <div className="text-[10px] text-slate-600 dark:text-slate-300 truncate">
                     {eng.flagship}
                   </div>
                 </div>
@@ -108,7 +108,7 @@ export const ModelTelemetryWidget: React.FC = () => {
                 <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 block">
                   {eng.latency}
                 </span>
-                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                   eng.statusType === 'online'
                     ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
                     : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
@@ -125,12 +125,12 @@ export const ModelTelemetryWidget: React.FC = () => {
       <div className="mt-4 pt-3.5 border-t border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>AES-256 شىفىرلىق ساقلاش</span>
+          <span>{lang === 'ug' ? 'شىفىرلىق يۇقىرى بىخەتەرلىك' : 'AES-256 شىفىرلىق ساقلاش'}</span>
         </div>
 
         <Link
           href="/settings"
-          className="flex items-center gap-1 text-[11px] font-mono text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+          className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition font-medium"
         >
           <KeyRound className="w-3 h-3" />
           <span>{hasOpenRouter && hasGemini ? 'ئاچقۇچلار تولۇق' : 'ئاچقۇچ تەڭشەش'}</span>

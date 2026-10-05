@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const UniversalLauncher: React.FC = () => {
-  const { t, isRtl, requireAuth } = useApp();
+  const { t, isRtl, lang, requireAuth } = useApp();
   const router = useRouter();
   const [prompt, setPrompt] = useState('');
 
@@ -70,9 +70,9 @@ export const UniversalLauncher: React.FC = () => {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[10px] font-mono font-bold shrink-0">
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[10px] font-bold shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-400 tech-pulse" />
-          <span>OMNI-ENGINE // LIVE</span>
+          <span>{lang === 'ug' ? 'ئەقلىي مەركەز • ئوچۇق' : 'OMNI-ENGINE // LIVE'}</span>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export const UniversalLauncher: React.FC = () => {
                 <span>{t.clear}</span>
               </button>
             )}
-            <span className="font-mono text-[9px] sm:text-[10px]">{prompt.length} {t.charCount}</span>
+            <span className="text-[9px] sm:text-[10px] font-medium">{prompt.length} {t.charCount}</span>
           </div>
 
           <div className="text-[10px] text-slate-600 dark:text-slate-300 hidden sm:block">

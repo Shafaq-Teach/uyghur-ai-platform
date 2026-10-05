@@ -30,7 +30,7 @@ export default function HomePage() {
   const features = [
     {
       id: 'chat',
-      code: 'MOD_01',
+      code: lang === 'ug' ? '1-بۆلەك' : 'MOD_01',
       href: '/chat',
       title: t.fChatTitle,
       desc: t.fChatDesc,
@@ -40,12 +40,12 @@ export default function HomePage() {
       badgeColor: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30',
       iconColor: 'text-indigo-400',
       activeModel: settings.featureModels.chat,
-      tag: lang === 'ug' ? 'پاراڭ ۋە پىروگرامما' : 'Reasoning & Coding',
-      stats: lang === 'ug' ? '128K ئارقا كۆرۈنۈش • ھەقىقىي ۋاقىت' : '128K Context • Realtime',
+      tag: lang === 'ug' ? 'ئەقلىي تەپەككۇر ۋە پاراڭ' : 'Reasoning & Coding',
+      stats: lang === 'ug' ? 'تېز سۈرئەتلىك ئەقلىي پاراڭ' : '128K Context • Realtime',
     },
     {
       id: 'translate',
-      code: 'MOD_02',
+      code: lang === 'ug' ? '2-بۆلەك' : 'MOD_02',
       href: '/translate',
       title: t.fTransTitle,
       desc: t.fTransDesc,
@@ -56,11 +56,11 @@ export default function HomePage() {
       iconColor: 'text-emerald-400',
       activeModel: settings.featureModels.translate,
       tag: lang === 'ug' ? '7 خىل ئۇسلۇب • ئاپتوماتىك' : '7 Tones • Auto Detect',
-      stats: lang === 'ug' ? 'ئەقلىي تەرجىمە • RTL ماسلاشقان' : 'Nuance Engine • RTL Native',
+      stats: lang === 'ug' ? 'تەبىئىي راۋان تەرجىمە' : 'Nuance Engine • RTL Native',
     },
     {
       id: 'image',
-      code: 'MOD_03',
+      code: lang === 'ug' ? '3-بۆلەك' : 'MOD_03',
       href: '/image',
       title: t.fImageTitle,
       desc: t.fImageDesc,
@@ -70,12 +70,12 @@ export default function HomePage() {
       badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
       iconColor: 'text-rose-400',
       activeModel: settings.featureModels.image,
-      tag: 'FLUX / SD / Imagen 3',
-      stats: lang === 'ug' ? 'Ultra HD • Prompt نى بېيىتىش' : 'Ultra HD • Prompt Auto-Enhance',
+      tag: lang === 'ug' ? 'سەنئەت ۋە يۇقىرى سۈزۈكلۈك' : 'FLUX / SD / Imagen 3',
+      stats: lang === 'ug' ? 'ئەڭ يۇقىرى سۈزۈكلۈك • بېيىتىلغان تەسۋىر' : 'Ultra HD • Prompt Auto-Enhance',
     },
     {
       id: 'tts',
-      code: 'MOD_04',
+      code: lang === 'ug' ? '4-بۆلەك' : 'MOD_04',
       href: '/tts',
       title: t.fTtsTitle,
       desc: t.fTtsDesc,
@@ -86,11 +86,11 @@ export default function HomePage() {
       iconColor: 'text-amber-400',
       activeModel: settings.featureModels.tts,
       tag: lang === 'ug' ? 'ئۇيغۇرچە ئاۋازلاشتۇرۇش' : 'Uyghur Vocalization',
-      stats: lang === 'ug' ? 'سۈنئىي ئاۋاز • دىنامىك دولقۇن' : 'Neural Synthesis • Waveform',
+      stats: lang === 'ug' ? 'سۈزۈك ئاۋاز • تەبىئىي ئوقۇش' : 'Neural Synthesis • Waveform',
     },
     {
       id: 'video',
-      code: 'MOD_05',
+      code: lang === 'ug' ? '5-بۆلەك' : 'MOD_05',
       href: '/ad-video',
       title: t.fVideoTitle,
       desc: t.fVideoDesc,
@@ -100,8 +100,8 @@ export default function HomePage() {
       badgeColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
       iconColor: 'text-purple-400',
       activeModel: settings.featureModels.video,
-      tag: lang === 'ug' ? 'ئادەمسىز • ماكرو فۇكۇس' : 'Strictly No Humans • Macro',
-      stats: lang === 'ug' ? '3 قەۋەتلىك تەكشۈرۈش • 4K كىنو' : '3-Layer Safety • Cinematic 4K',
+      tag: lang === 'ug' ? 'ئادەمسىز • ماكرو فىلىم' : 'Strictly No Humans • Macro',
+      stats: lang === 'ug' ? 'كەسپىي سۈپەت • ئەقلىي سېنارىيە' : '3-Layer Safety • Cinematic 4K',
     },
   ];
 
@@ -135,7 +135,7 @@ export default function HomePage() {
           <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-indigo-400 dark:hover:border-indigo-500/30 transition min-w-0 overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400" />
-              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 01</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500">{lang === 'ug' ? 'ئالاھىدىلىك 1' : 'SPEC // 01'}</span>
             </div>
             <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec1Title}</h4>
             <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec1Desc}</p>
@@ -144,7 +144,7 @@ export default function HomePage() {
           <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-emerald-400 dark:hover:border-emerald-500/30 transition min-w-0 overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 dark:text-emerald-400" />
-              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 02</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500">{lang === 'ug' ? 'ئالاھىدىلىك 2' : 'SPEC // 02'}</span>
             </div>
             <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec2Title}</h4>
             <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec2Desc}</p>
@@ -153,7 +153,7 @@ export default function HomePage() {
           <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-rose-400 dark:hover:border-rose-500/30 transition min-w-0 overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 dark:text-rose-400" />
-              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 03</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500">{lang === 'ug' ? 'ئالاھىدىلىك 3' : 'SPEC // 03'}</span>
             </div>
             <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec3Title}</h4>
             <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec3Desc}</p>
@@ -162,7 +162,7 @@ export default function HomePage() {
           <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-purple-400 dark:hover:border-purple-500/30 transition min-w-0 overflow-hidden shadow-sm">
             <div className="flex items-center justify-between mb-1.5 sm:mb-2">
               <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 dark:text-purple-400" />
-              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 04</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500">{lang === 'ug' ? 'ئالاھىدىلىك 4' : 'SPEC // 04'}</span>
             </div>
             <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec4Title}</h4>
             <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec4Desc}</p>
@@ -179,7 +179,7 @@ export default function HomePage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 tech-pulse" />
-              <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
                 {t.modulesOnline}
               </span>
             </div>
@@ -204,10 +204,10 @@ export default function HomePage() {
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-4">
-                    <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
                       {feature.code}
                     </span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${feature.badgeColor}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feature.badgeColor}`}>
                       {feature.tag}
                     </span>
                   </div>
@@ -224,13 +224,13 @@ export default function HomePage() {
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-xs">
-                  <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 truncate max-w-[170px]">
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-xs gap-2">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                     {feature.stats}
                   </span>
-                  <span className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
+                  <span className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform shrink-0">
                     <span>{t.openConsole}</span>
-                    <Arrow className="w-3.5 h-3.5" />
+                    <Arrow className="w-3.5 h-3.5 rtl:rotate-180" />
                   </span>
                 </div>
               </Link>

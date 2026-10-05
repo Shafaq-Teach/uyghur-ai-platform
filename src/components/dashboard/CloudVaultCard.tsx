@@ -13,7 +13,7 @@ import {
 import { AuthModal } from '@/components/AuthModal';
 
 export const CloudVaultCard: React.FC = () => {
-  const { user, isRtl, history, settings } = useApp();
+  const { user, isRtl, history, settings, lang } = useApp();
   const [authOpen, setAuthOpen] = useState(false);
 
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
@@ -32,21 +32,21 @@ export const CloudVaultCard: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                  Supabase بۇلۇت ئۇلىنىشى
+                  {lang === 'ug' ? 'بۇلۇت ئۇلىنىش مەركىزى' : 'Supabase بۇلۇت ئۇلىنىشى'}
                 </h3>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                  بىخەتەر سانلىق مەلۇمات مەركىزى
+                  {lang === 'ug' ? 'بىخەتەر سانلىق مەلۇمات مەركىزى' : 'بىخەتەر سانلىق مەلۇمات مەركىزى'}
                 </p>
               </div>
             </div>
 
-            <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+            <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
               user 
                 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                 : 'bg-slate-200/60 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/[0.08]'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-emerald-400 tech-pulse' : 'bg-slate-400'}`} />
-              <span>{user ? 'CLOUD SYNCED' : 'LOCAL CACHE'}</span>
+              <span>{user ? (lang === 'ug' ? 'بۇلۇتقا ماسلاندى' : 'CLOUD SYNCED') : (lang === 'ug' ? 'يەرلىك ساقلىغۇچ' : 'LOCAL CACHE')}</span>
             </span>
           </div>
 
@@ -79,7 +79,7 @@ export const CloudVaultCard: React.FC = () => {
                     ھېساباتقا كىرىپ سىنخىرو قىلىڭ
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                    API ئاچقۇچ ۋە تارىخنى بۇلۇتقا ساقلاش
+                    {lang === 'ug' ? 'ئۇلىنىش ئاچقۇچى ۋە تارىخنى بۇلۇتقا ساقلاش' : 'API ئاچقۇچ ۋە تارىخنى بۇلۇتقا ساقلاش'}
                   </p>
                 </div>
                 <button
@@ -100,7 +100,7 @@ export const CloudVaultCard: React.FC = () => {
                 <History className="w-3.5 h-3.5" />
                 <span className="text-[10px]">ئەسەرلەر سانى</span>
               </div>
-              <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+              <div className="font-bold text-sm text-slate-900 dark:text-white">
                 {historyCount} <span className="text-[10px] font-normal text-slate-400">دانە</span>
               </div>
             </div>
@@ -110,7 +110,7 @@ export const CloudVaultCard: React.FC = () => {
                 <KeyRound className="w-3.5 h-3.5" />
                 <span className="text-[10px]">ئاچقۇچ ھالىتى</span>
               </div>
-              <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+              <div className="font-bold text-sm text-slate-900 dark:text-white">
                 {keyCount} / 2 <span className="text-[10px] font-normal text-slate-400">تەڭشەلدى</span>
               </div>
             </div>
@@ -126,7 +126,9 @@ export const CloudVaultCard: React.FC = () => {
             <span>بارلىق تارىخنى تەكشۈرۈش</span>
             <ArrowIcon className="w-3 h-3" />
           </Link>
-          <span className="text-[10px] text-slate-400 font-mono">SUPABASE PRO</span>
+          <span className="text-[10px] text-slate-400 font-medium">
+            {lang === 'ug' ? 'بۇلۇت مۇلازىمىتى' : 'SUPABASE PRO'}
+          </span>
         </div>
       </div>
 
