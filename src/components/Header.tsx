@@ -115,50 +115,37 @@ export const Header: React.FC = () => {
                 <span className="hidden md:inline font-semibold text-slate-700 dark:text-slate-200 max-w-[90px] truncate">
                   {user.fullName || user.email?.split('@')[0]}
                 </span>
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" title="Supabase بۇلۇت ئۇلاندى" />
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" />
                 <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:inline" />
               </button>
 
               {userDropdownOpen && (
                 <div 
-                  className="absolute end-0 mt-2 w-64 rounded-2xl bg-slate-900 border border-white/[0.1] shadow-2xl p-3 z-50 space-y-2 animate-fade-in"
+                  className="absolute end-0 mt-2 w-52 rounded-2xl bg-[#0f121a] border border-white/[0.1] shadow-2xl p-2.5 z-50 space-y-2 animate-fade-in"
                   dir={isRtl ? 'rtl' : 'ltr'}
                 >
-                  <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                    <div className="text-xs font-bold text-white truncate">{user.fullName || user.email?.split('@')[0]}</div>
-                    <div className="text-[11px] text-slate-400 font-mono truncate">{user.email}</div>
-                    <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium">
-                      <Cloud className="w-3 h-3 shrink-0" />
-                      <span>Supabase بۇلۇت ساقلىغۇچ ئۇلاندى</span>
+                  {/* Name only */}
+                  <div className="px-3.5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-center">
+                    <div className="text-sm font-extrabold text-white truncate">
+                      {user.fullName || user.email?.split('@')[0]}
                     </div>
                   </div>
 
                   {isAdmin && (
-                    <>
-                      <Link
-                        href="/sensiz520"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-500/20 transition border border-purple-500/30 mb-1"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                        <span>باشقۇرۇش سۇپىسى (Admin)</span>
-                      </Link>
-
-                      <Link
-                        href="/settings"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] transition mb-1"
-                      >
-                        <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                        <span>API ئاچقۇچ تەڭشىكى</span>
-                      </Link>
-                    </>
+                    <Link
+                      href="/sensiz520"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-500/20 transition border border-purple-500/30"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      <span>باشقۇرۇش سۇپىسى (Admin)</span>
+                    </Link>
                   )}
 
                   <button
                     type="button"
                     onClick={() => { setUserDropdownOpen(false); signOut(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 transition border border-rose-500/20"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>ھېساباتتىن چېكىنىش</span>
@@ -370,10 +357,8 @@ export const Header: React.FC = () => {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.fullName || user.email}</div>
-                    <div className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>Cloud Synced</span>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {user.fullName || user.email?.split('@')[0]}
                     </div>
                   </div>
                 </div>

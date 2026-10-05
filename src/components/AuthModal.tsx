@@ -98,7 +98,7 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, initialTab = 'sign
                 {tab === 'signin' ? 'ھېساباتقا كىرىش' : 'يېڭى ھېسابات ئېچىش'}
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Supabase بۇلۇت ساقلىغۇچ
+                سۈنئىي ئىدراك سۇپىسى
               </p>
             </div>
           </div>
