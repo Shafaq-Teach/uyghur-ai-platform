@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
@@ -44,11 +44,38 @@ export const Header: React.FC = () => {
     { href: '/history', label: t.navHistory, icon: History },
   ];
 
+  const [announcement, setAnnouncement] = useState<{ enabled: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/config')
+      .then((res) => res.json())
+      .then((d) => {
+        if (d?.config?.announcement?.enabled && d?.config?.announcement?.text) {
+          setAnnouncement(d.config.announcement);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const hasKeys = !!settings?.openRouterApiKey || !!settings?.geminiApiKey;
 
   return (
     <>
-    <header className="sticky top-0 z-40 w-full tech-glass-header transition-colors">
+      {announcement?.enabled && announcement?.text && (
+        <aside aria-label="System announcement" className="w-full bg-gradient-to-r from-indigo-950 via-purple-950 to-indigo-950 border-b border-indigo-500/30 text-white text-[11px] sm:text-xs py-2 px-3 sm:px-4 text-center font-medium flex items-center justify-center gap-2 relative z-50 shadow-md">
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+          <span className="truncate max-w-[85vw]">{announcement.text}</span>
+          <button 
+            type="button"
+            onClick={() => setAnnouncement(null)}
+            className="ms-2 text-white/60 hover:text-white p-0.5 rounded transition shrink-0"
+            aria-label="Close announcement"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </aside>
+      )}
+      <header className="sticky top-0 z-40 w-full tech-glass-header transition-colors">
       <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 w-full min-w-0">
         {/* Logo with Tech Badge */}
         <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink min-w-0">
@@ -307,7 +334,7 @@ export const Header: React.FC = () => {
                       <Icon className={`w-4 h-4 ${th.color} shrink-0`} />
                       <div className="min-w-0">
                         <div className="truncate font-semibold">{th.label}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono truncate">{th.desc}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{th.desc}</div>
                       </div>
                     </button>
                   );

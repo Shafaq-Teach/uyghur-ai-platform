@@ -56,11 +56,36 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 3. Fetch recent AI generation activity stream
+    let recentActivities: any[] = [];
+    try {
+      const { data: recentHistory } = await supabase
+        .from('ai_history')
+        .select('id, type, title, preview, created_at, user_id')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (recentHistory) {
+        const userMap = new Map<string, string>();
+        userList.forEach(u => {
+          userMap.set(u.id, u.full_name || u.email?.split('@')[0] || 'ئابۇنىت');
+        });
+        recentActivities = recentHistory.map(h => ({
+          ...h,
+          userName: userMap.get(h.user_id) || 'ئابۇنىت',
+        }));
+      }
+    } catch (e) {
+      console.warn('Failed to fetch recent activities:', e);
+    }
+
     // Always invalidate cache when admin inspects config to ensure live sync with Supabase changes
     invalidateSystemConfigCache();
 
     const hasOpenRouter = Boolean(config?.master_openrouter_key && config.master_openrouter_key.length > 5);
     const hasGemini = Boolean(config?.master_gemini_key && config.master_gemini_key.length > 5);
+
+    const quota = config?.quota_settings || {};
 
     return NextResponse.json({
       config: {
@@ -71,7 +96,20 @@ export async function GET(req: NextRequest) {
           tts: 'openai/tts-1',
           video: 'google/gemini-2.5-flash',
         },
-        quotaSettings: config?.quota_settings || { dailyUserLimit: 50, imageLimit: 10 },
+        fallbackModels: quota.fallback_models || {
+          chat: 'deepseek/deepseek-chat',
+          translate: 'google/gemini-2.5-flash',
+        },
+        quotaSettings: {
+          dailyUserLimit: quota.daily_user_limit || 50,
+          imageLimit: quota.image_limit || 10,
+        },
+        announcement: quota.announcement || {
+          enabled: false,
+          text: '',
+          type: 'info',
+        },
+        maintenanceMode: Boolean(quota.maintenance_mode),
         hasOpenRouter,
         hasGemini,
       },
@@ -81,6 +119,7 @@ export async function GET(req: NextRequest) {
         activeEnginesCount: 5,
       },
       users: userList,
+      recentActivities,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
@@ -90,17 +129,51 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { activeModels, quotaSettings } = body;
+
+    // Handle user role update
+    if (body.updateUserRole) {
+      const { userId, role } = body.updateUserRole;
+      if (!userId || !role) {
+        return NextResponse.json({ error: 'userId ۋە role تەلەپ قىلىنىدۇ' }, { status: 400 });
+      }
+      const { error: roleErr } = await supabase
+        .from('profiles')
+        .update({ role, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (roleErr) {
+        return NextResponse.json({ error: roleErr.message }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, message: 'رول مۇۋەپپەقىيەتلىك ئۆزگەرتىلدى' });
+    }
+
+    const { activeModels, fallbackModels, quotaSettings, announcement, maintenanceMode } = body;
+
+    // Get existing quota settings to merge
+    const { data: existing } = await supabase
+      .from('system_config')
+      .select('quota_settings')
+      .eq('id', 'global')
+      .single();
+
+    const mergedQuota = {
+      ...(existing?.quota_settings || {}),
+      ...(quotaSettings ? {
+        daily_user_limit: quotaSettings.dailyUserLimit,
+        image_limit: quotaSettings.imageLimit,
+      } : {}),
+      ...(fallbackModels !== undefined ? { fallback_models: fallbackModels } : {}),
+      ...(announcement !== undefined ? { announcement } : {}),
+      ...(maintenanceMode !== undefined ? { maintenance_mode: maintenanceMode } : {}),
+    };
 
     const updatePayload: any = {
+      quota_settings: mergedQuota,
       updated_at: new Date().toISOString(),
     };
 
     if (activeModels) {
       updatePayload.active_models = activeModels;
-    }
-    if (quotaSettings) {
-      updatePayload.quota_settings = quotaSettings;
     }
 
     const { data, error } = await supabase

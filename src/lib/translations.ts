@@ -102,7 +102,7 @@ export const translations = {
     swapLanguages: 'تىلنى ئالماشتۇرۇش',
 
     // Image
-    imagePromptLabel: 'رەسىم تەسۋىرى (Prompt):',
+    imagePromptLabel: 'رەسىم تەسۋىرى (پىرومپىت):',
     imagePromptPlaceholder: 'مەسىلەن: قارلىق تاغ ئېتىكىدىكى زامانىۋى قەھۋەخانا، كۈز پەسلىدىكى ئالتۇن يوپۇرماقلار، سۈزۈك قۇياش نۇرى...',
     aspectRatio: 'نىسبەت (Aspect Ratio)',
     imageSize: 'چوڭلۇقى',
@@ -115,11 +115,11 @@ export const translations = {
     styleCyberpunk: 'سىبېرپونك (Cyberpunk)',
     styleMinimalist: 'ئاددىي / ساددا (Minimalist)',
     generateImageBtn: 'رەسىم ھاسىل قىلىش',
-    promptEnhanceHint: 'ئۇيغۇرچە تەسۋىر ئاپتوماتىك ئەڭ ئەلا ئىنگىلىزچە prompt غا تەرجىمە قىلىنىپ بېيىتىلىدۇ.',
+    promptEnhanceHint: 'ئۇيغۇرچە تەسۋىر ئاپتوماتىك ئەڭ ئەلا ئىنگلىزچە پىرومپىتقا تەرجىمە قىلىنىپ بېيىتىلىدۇ.',
     previewCanvas: 'ئالدىن كۆرۈش (Preview Canvas)',
     imageGenerating: 'سۈنئىي ئىدراك رەسىمنى سىزماقتا...',
     imagePlaceholderPrompt: 'رەسىم تەسۋىرىنى يېزىپ «رەسىم ھاسىل قىلىش» نى بېسىڭ',
-    copyPrompt: 'Prompt كۆچۈرۈش',
+    copyPrompt: 'تەسۋىرنى كۆچۈرۈش',
     ratioSquare: 'كۋادرات',
     ratioWide: 'تولۇق',
     ratioTall: 'تىك',

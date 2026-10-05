@@ -198,7 +198,7 @@ export default function AdVideoPage() {
               {imagePreview && (
                 <button
                   onClick={() => setImagePreview(null)}
-                  className="text-[11px] text-rose-400 hover:underline font-mono"
+                  className="text-[11px] text-rose-400 hover:underline"
                 >
                   {t.removeImage}
                 </button>

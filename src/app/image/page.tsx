@@ -130,22 +130,27 @@ export default function ImagePage() {
         <div className="lg:col-span-6 space-y-5">
           {/* Prompt Box */}
           <div className="p-5 rounded-3xl tech-card border border-white/[0.08] space-y-3 shadow-lg">
-            <label className="text-xs font-semibold text-slate-200 flex items-center justify-between">
-              <span>{t.imagePromptLabel}</span>
-              <span className="text-[11px] text-rose-400 font-normal font-mono">{t.promptEnhanceHint}</span>
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2" dir="rtl">
+              <label className="text-xs font-semibold text-slate-200">
+                {t.imagePromptLabel}
+              </label>
+              <span className="text-[11px] text-rose-400 font-normal" dir="rtl">
+                {t.promptEnhanceHint}
+              </span>
+            </div>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={t.imagePromptPlaceholder}
               rows={4}
-              className="w-full bg-[#0d0f17] border border-white/[0.1] rounded-2xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/50 custom-scrollbar resize-none"
+              className="w-full bg-[#0d0f17] border border-white/[0.1] rounded-2xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/50 custom-scrollbar resize-none text-right"
+              dir="rtl"
             />
             {translatedPrompt && (
-              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1.5 animate-fade-in">
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1.5 animate-fade-in" dir="rtl">
                 <div className="flex items-center justify-between text-rose-300 font-semibold text-[11px]">
-                  <span>سۈنئىي ئەقىل تەرجىمە قىلغان پىرومپت (AI Translated Prompt):</span>
-                  <span className="text-[10px] font-mono bg-rose-500/20 px-2 py-0.5 rounded text-rose-200">
+                  <span>سۈنئىي ئەقىل تەرجىمە قىلغان تەسۋىر:</span>
+                  <span className="text-[10px] font-mono bg-rose-500/20 px-2 py-0.5 rounded text-rose-200" dir="ltr">
                     AI Neural
                   </span>
                 </div>

@@ -231,10 +231,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoadingUser(false);
         await loadUserData(session.user.id);
       } else {
-        if (typeof window !== 'undefined') {
-          window.localStorage.removeItem('uyghur_ai_admin_preview');
+        let preview: any = null;
+        try {
+          const item = typeof window !== 'undefined' ? localStorage.getItem('uyghur_ai_admin_preview') : null;
+          if (item) preview = JSON.parse(item);
+        } catch (_) {}
+        if (preview && preview.role === 'admin') {
+          setUser(preview);
+        } else {
+          setUser(null);
         }
-        setUser(null);
         setIsLoadingUser(false);
       }
     });
