@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { 
   Settings, 
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   Sparkles,
   ShieldCheck,
+  ShieldAlert,
   Zap,
   ClipboardPaste,
   Trash2,
@@ -36,7 +38,7 @@ import { SearchableModelSelect } from '@/components/SearchableModelSelect';
 import { AIProvider } from '@/types';
 
 export default function SettingsPage() {
-  const { t, isRtl, settings, updateSettings, user, theme, setTheme } = useApp();
+  const { t, isRtl, settings, updateSettings, user, isAdmin, isLoadingUser, openAuthModal, theme, setTheme } = useApp();
 
   const [openRouterKey, setOpenRouterKey] = useState(settings.openRouterApiKey);
   const [geminiKey, setGeminiKey] = useState(settings.geminiApiKey);
@@ -151,6 +153,53 @@ export default function SettingsPage() {
     setTtsModel('openai/tts-1');
     setVideoModel('google/gemini-2.5-flash');
   };
+
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-slate-500">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium">كىملىك تەكشۈرۈلۈۋاتىدۇ...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[65vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#0f121a] border border-rose-500/30 rounded-3xl p-8 text-center space-y-5 shadow-2xl relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-red-500 to-pink-500" />
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/15 text-rose-500 mx-auto flex items-center justify-center border border-rose-500/30 shadow-lg shadow-rose-500/10">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">تەڭشەكلەرنى پەقەت باشقۇرغۇچى ئۆزگەرتەلەيدۇ</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              API ئاچقۇچى ۋە سىستېما تەڭشەكلىرى مەركىزىي ئورگان باشقۇرغۇچىسى (<span className="font-mono text-indigo-400">yulgun353@gmail.com</span>) تەرىپىدىن بىردەك قوغدىلىدۇ ۋە باشقۇرۇلىدۇ. ئادەتتىكى ئەزالارنىڭ بۇ مەزمۇنلارنى كۆرۈش ياكى ئۆزگەرتىش ھوقۇقى چەكلەنگەن.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2.5">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] text-slate-800 dark:text-white font-bold text-xs transition"
+            >
+              باش بەتكە قايتىش
+            </Link>
+            {!user && (
+              <button
+                type="button"
+                onClick={() => openAuthModal('signin')}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 transition"
+              >
+                باشقۇرغۇچى سۈپىتىدە كىرىش
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>

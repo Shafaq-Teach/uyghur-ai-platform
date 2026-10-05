@@ -125,7 +125,7 @@ export const Header: React.FC = () => {
                   dir={isRtl ? 'rtl' : 'ltr'}
                 >
                   <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                    <div className="text-xs font-bold text-white truncate">{user.fullName}</div>
+                    <div className="text-xs font-bold text-white truncate">{user.fullName || user.email?.split('@')[0]}</div>
                     <div className="text-[11px] text-slate-400 font-mono truncate">{user.email}</div>
                     <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium">
                       <Cloud className="w-3 h-3 shrink-0" />
@@ -134,24 +134,26 @@ export const Header: React.FC = () => {
                   </div>
 
                   {isAdmin && (
-                    <Link
-                      href="/sensiz520"
-                      onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-500/20 transition border border-purple-500/30 mb-1"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                      <span>باشقۇرۇش سۇپىسى (Admin)</span>
-                    </Link>
-                  )}
+                    <>
+                      <Link
+                        href="/sensiz520"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-500/20 transition border border-purple-500/30 mb-1"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                        <span>باشقۇرۇش سۇپىسى (Admin)</span>
+                      </Link>
 
-                  <Link
-                    href="/settings"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] transition"
-                  >
-                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                    <span>API ئاچقۇچ تەڭشىكى</span>
-                  </Link>
+                      <Link
+                        href="/settings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] transition mb-1"
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                        <span>API ئاچقۇچ تەڭشىكى</span>
+                      </Link>
+                    </>
+                  )}
 
                   <button
                     type="button"
