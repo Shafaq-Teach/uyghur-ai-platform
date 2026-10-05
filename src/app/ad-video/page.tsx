@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
+import { downloadMedia, downloadText, recordAndDownloadVideo } from '@/lib/download';
 import { 
   Video, 
   Upload, 
@@ -20,7 +21,9 @@ import {
   SlidersHorizontal,
   Copy,
   Check,
-  Maximize2
+  Maximize2,
+  FileText,
+  Film
 } from 'lucide-react';
 
 export default function AdVideoPage() {
@@ -34,6 +37,12 @@ export default function AdVideoPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState('');
+
+  // Download states
+  const [downloadingVideo, setDownloadingVideo] = useState(false);
+  const [downloadingImage, setDownloadingImage] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [downloadDoneType, setDownloadDoneType] = useState<string | null>(null);
 
   // Cinema Monitor states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -149,6 +158,47 @@ export default function AdVideoPage() {
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
+  const handleDownloadKeyframe = async () => {
+    if (!result?.posterImageUrl || downloadingImage) return;
+    setDownloadingImage(true);
+    try {
+      const filename = `commercial-${productName ? productName.replace(/\s+/g, '-').slice(0, 15) : 'product'}-${Date.now()}.jpg`;
+      await downloadMedia(result.posterImageUrl, filename);
+      setDownloadDoneType('image');
+      setTimeout(() => setDownloadDoneType(null), 3000);
+    } catch (e) {
+      console.error('Keyframe download failed:', e);
+    } finally {
+      setDownloadingImage(false);
+    }
+  };
+
+  const handleDownloadVideo = async () => {
+    if (!result?.posterImageUrl || downloadingVideo) return;
+    setDownloadingVideo(true);
+    setVideoProgress(0);
+    try {
+      const filename = `commercial-${productName ? productName.replace(/\s+/g, '-').slice(0, 15) : 'product'}-${Date.now()}.webm`;
+      await recordAndDownloadVideo(result.posterImageUrl, duration, filename, (progress) => {
+        setVideoProgress(progress);
+      });
+      setDownloadDoneType('video');
+      setTimeout(() => setDownloadDoneType(null), 3000);
+    } catch (e) {
+      console.error('Video recording download failed:', e);
+    } finally {
+      setDownloadingVideo(false);
+    }
+  };
+
+  const handleDownloadScript = () => {
+    if (!result?.storyboard) return;
+    const filename = `commercial-script-${Date.now()}.txt`;
+    downloadText(result.storyboard, filename);
+    setDownloadDoneType('script');
+    setTimeout(() => setDownloadDoneType(null), 3000);
+  };
+
   const handleToggleFullscreen = () => {
     if (!monitorRef.current) return;
     if (!document.fullscreenElement) {
@@ -163,10 +213,10 @@ export default function AdVideoPage() {
   const scene2End = Math.max(2, Math.floor((2 * duration) / 3));
   const activeSceneIndex = currentSecond <= scene1End ? 1 : currentSecond <= scene2End ? 2 : 3;
   const activeSceneLabel = activeSceneIndex === 1
-    ? '1-كادىر: ماكرو يېقىن كۆرۈنۈش ۋە تەپسىلات (Macro Close-Up)'
+    ? '1-كادىر: ماكرو يېقىن كۆرۈنۈش ۋە ئىنچىكە تەپسىلات'
     : activeSceneIndex === 2
-    ? '2-كادىر: ھەيۋەتلىك ھەرىكەت ۋە سىلىق ئايلىنىش (Dynamic Motion)'
-    : '3-كادىر: باش كۆرۈنۈش ۋە ماركا تامغىسى (Hero Brand Finale)';
+    ? '2-كادىر: ھەيۋەتلىك ھەرىكەت ۋە نۇرلۇق ئايلىنىش'
+    : '3-كادىر: باش كۆرۈنۈش ۋە ئالتۇن ماركا تامغىسى';
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -459,7 +509,7 @@ export default function AdVideoPage() {
                         00:0{currentSecond} / 00:0{duration}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        {isPlaying ? 'فىلىم قويۇلۇۋاتىدۇ (Playing)' : 'توقتاپ تۇردى (Paused)'}
+                        {isPlaying ? 'فىلىم قويۇلۇۋاتىدۇ' : 'توقتاپ تۇردى'}
                       </span>
                     </div>
 
@@ -481,7 +531,7 @@ export default function AdVideoPage() {
 
             {/* Bottom Actions */}
             {result && (
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
@@ -501,20 +551,52 @@ export default function AdVideoPage() {
                     title="پىروگرامما پىروپتىنى كۆچۈرۈش"
                   >
                     {copiedPrompt ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedPrompt ? 'كۆچۈرۈلدى' : 'پىرومپتنى كۆچۈرۈش'}</span>
+                    <span>{copiedPrompt ? 'كۆچۈرۈلدى' : 'پىرومپت كۆچۈرۈش'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadScript}
+                    className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.08] transition text-xs flex items-center gap-1"
+                    title="سېنارىيە تېكىستىنى ھۆججەت قىلىپ چۈشۈرۈش"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{downloadDoneType === 'script' ? 'ساقلاندى!' : 'سېنارىيە'}</span>
                   </button>
                 </div>
 
-                <a
-                  href={result.posterImageUrl}
-                  download={`commercial-${Date.now()}.jpg`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold transition shadow-md shadow-purple-600/25 border border-purple-400/30"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{t.download} (4K كۆرۈنۈش)</span>
-                </a>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDownloadKeyframe}
+                    disabled={downloadingImage}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-purple-200 hover:text-white text-xs font-semibold transition border border-purple-400/30 disabled:opacity-60"
+                    title="4K يۇقىرى سۈزۈكلۈكتىكى ئاساسىي كادىر رەسىمىنى چۈشۈرۈش"
+                  >
+                    {downloadingImage ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : downloadDoneType === 'image' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-300" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-purple-400" />
+                    )}
+                    <span>{downloadingImage ? 'چۈشۈۋاتىدۇ...' : downloadDoneType === 'image' ? 'چۈشۈرۈلدى!' : '4K رەسىمنى چۈشۈرۈش'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadVideo}
+                    disabled={downloadingVideo}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold transition shadow-md shadow-purple-600/25 border border-purple-400/30 disabled:opacity-60"
+                    title="كىنو ھەرىكەتلىك سىن فىلىمىنى كومپيۇتېر ياكى تېلېفونغا چۈشۈرۈش"
+                  >
+                    {downloadingVideo ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : downloadDoneType === 'video' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-300" />
+                    ) : (
+                      <Film className="w-3.5 h-3.5" />
+                    )}
+                    <span>{downloadingVideo ? `پىشۇرۇلۇۋاتىدۇ (${videoProgress}%)...` : downloadDoneType === 'video' ? 'ۋىدېيو چۈشۈرۈلدى!' : 'سىن فىلىمىنى چۈشۈرۈش'}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

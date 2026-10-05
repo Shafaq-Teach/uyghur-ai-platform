@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
+import { downloadMedia } from '@/lib/download';
 import { 
   Volume2, 
   Play, 
@@ -11,7 +12,8 @@ import {
   Download, 
   RefreshCw,
   Music, 
-  Radio
+  Radio,
+  Check
 } from 'lucide-react';
 
 export default function TtsPage() {
@@ -21,6 +23,8 @@ export default function TtsPage() {
   const [speed, setSpeed] = useState(1.0);
   const [pitch, setPitch] = useState(1.0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadDone, setDownloadDone] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -125,14 +129,19 @@ export default function TtsPage() {
     }
   };
 
-  const handleDownload = () => {
-    if (!audioUrl) return;
-    const a = document.createElement('a');
-    a.href = audioUrl;
-    a.download = `uyghur-speech-${Date.now()}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (!audioUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const filename = `uyghur-speech-${Date.now()}.wav`;
+      await downloadMedia(audioUrl, filename);
+      setDownloadDone(true);
+      setTimeout(() => setDownloadDone(false), 2500);
+    } catch (e) {
+      console.error('Audio download error:', e);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -337,11 +346,18 @@ export default function TtsPage() {
 
           <button
             onClick={handleDownload}
-            disabled={!audioUrl}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-200 hover:text-white text-xs font-medium border border-white/[0.08] hover:border-amber-500/40 transition disabled:opacity-40"
+            disabled={!audioUrl || downloading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-semibold border border-amber-400/30 transition shadow-md shadow-amber-600/25 disabled:opacity-40"
+            title="ئاۋاز ھۆججىتىنى كومپيۇتېر ياكى تېلېفونغا چۈشۈرۈش"
           >
-            <Download className="w-3.5 h-3.5 text-amber-400" />
-            <span>{t.downloadAudioWav}</span>
+            {downloading ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : downloadDone ? (
+              <Check className="w-3.5 h-3.5 text-emerald-200" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{downloading ? 'چۈشۈۋاتىدۇ...' : downloadDone ? 'چۈشۈرۈلدى!' : t.downloadAudioWav}</span>
           </button>
         </div>
       </div>

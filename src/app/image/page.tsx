@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
+import { downloadMedia } from '@/lib/download';
 import { 
   Sparkles, 
   Download, 
@@ -23,6 +24,8 @@ export default function ImagePage() {
   const [size, setSize] = useState('medium');
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadDone, setDownloadDone] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [translatedPrompt, setTranslatedPrompt] = useState('');
@@ -110,14 +113,19 @@ export default function ImagePage() {
     setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
-  const handleDownload = () => {
-    if (!resultImage) return;
-    const a = document.createElement('a');
-    a.href = resultImage;
-    a.download = `ai-image-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (!resultImage || downloading) return;
+    setDownloading(true);
+    try {
+      const filename = `uyghur-ai-image-${Date.now()}.png`;
+      await downloadMedia(resultImage, filename);
+      setDownloadDone(true);
+      setTimeout(() => setDownloadDone(false), 2500);
+    } catch (e) {
+      console.error('Download failed:', e);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -282,10 +290,18 @@ export default function ImagePage() {
 
                 <button
                   onClick={handleDownload}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-medium text-xs transition shadow-md shadow-rose-600/25 border border-rose-400/30"
+                  disabled={downloading}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-medium text-xs transition shadow-md shadow-rose-600/25 border border-rose-400/30 disabled:opacity-60"
+                  title="رەسىمنى كومپيۇتېر ياكى تېلېفونغا چۈشۈرۈش"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{t.download}</span>
+                  {downloading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : downloadDone ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{downloading ? 'چۈشۈۋاتىدۇ...' : downloadDone ? 'چۈشۈرۈلدى!' : t.download}</span>
                 </button>
               </div>
             )}
