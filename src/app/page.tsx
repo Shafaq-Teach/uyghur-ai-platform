@@ -118,7 +118,7 @@ export default function HomePage() {
           style={{ fontFamily: "'UKIJ Kawak 3D', sans-serif" }}
         >
           <span 
-            className="text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-indigo-100 dark:to-slate-400 dark:bg-clip-text dark:text-transparent font-kawak"
+            className="rainbow-dynamic-text font-kawak select-none"
             style={{ fontFamily: "'UKIJ Kawak 3D', sans-serif" }}
           >
             {t.heroTitle}

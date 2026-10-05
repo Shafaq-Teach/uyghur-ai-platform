@@ -40,6 +40,52 @@
   font-family: 'UKIJ Kawak 3D', 'UKIJ Chiver Kufi', 'UKIJ Kufi Chiwer', 'UKIJ Ekran', sans-serif !important;
 }
 
+@keyframes dynamicRainbowText {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.rainbow-dynamic-text {
+  background-image: linear-gradient(
+    90deg,
+    #ff1744 0%,
+    #ff6d00 10%,
+    #ffd600 20%,
+    #00e676 30%,
+    #00e5ff 40%,
+    #2979ff 50%,
+    #651fff 60%,
+    #d500f9 70%,
+    #f50057 80%,
+    #ff1744 90%,
+    #ff6d00 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  display: inline-block;
+  animation: dynamicRainbowText 6s ease-in-out infinite;
+  filter: drop-shadow(0 4px 14px rgba(99, 102, 241, 0.4));
+}
+
+html[data-theme="light"] .rainbow-dynamic-text,
+html:not(.dark):not([data-theme="warm"]) .rainbow-dynamic-text {
+  filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.28));
+}
+
+html[data-theme="warm"] .rainbow-dynamic-text {
+  filter: drop-shadow(0 3px 6px rgba(120, 53, 15, 0.28));
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
