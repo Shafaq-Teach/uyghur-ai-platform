@@ -525,7 +525,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <span className="text-xs font-mono text-slate-500">
-            جەمئىي: {data?.users?.length ?? 1} ئابۇنىت
+            جەمئىي: {data?.users?.length ?? data?.stats?.userCount ?? 0} ئابۇنىت
           </span>
         </div>
 
@@ -541,34 +541,42 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
-              {(data?.users || []).map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3 px-4 font-mono font-medium text-slate-800 dark:text-slate-200">
-                    {u.email}
-                  </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                    {u.full_name || 'ئىشلەتكۈچى'}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      u.role === 'admin' 
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                        : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300'
-                    }`}>
-                      {u.role === 'admin' ? 'باشقۇرغۇچى (Admin)' : 'ئادەتتىكى ئابۇنىت (User)'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-400">
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="inline-flex items-center gap-1 text-emerald-500 font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      نورمال
-                    </span>
+              {(!data?.users || data.users.length === 0) ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-400">
+                    ھازىرچە ئابۇنىتلار ئۇچۇرى يۈكلىنىۋاتىدۇ ياكى قۇرۇق.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                data.users.map((u) => (
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 px-4 font-mono font-medium text-slate-800 dark:text-slate-200">
+                      {u.email}
+                    </td>
+                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-semibold">
+                      {u.full_name || 'ئىشلەتكۈچى'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        u.role === 'admin' 
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                          : 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-300 border border-indigo-500/20'
+                      }`}>
+                        {u.role === 'admin' ? 'باشقۇرغۇچى (Admin)' : 'ئادەتتىكى ئەزا (User)'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 font-mono text-slate-400">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1 text-emerald-500 font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        نورمال
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

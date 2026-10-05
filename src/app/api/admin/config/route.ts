@@ -17,22 +17,44 @@ export async function GET(req: NextRequest) {
       console.error('Config fetch error:', configError);
     }
 
-    // 2. Fetch stats: user count
-    const { count: userCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
+    // 2. Fetch stats & registered profiles via RPC with direct fallback
+    let userCount = 0;
+    let historyCount = 0;
+    let userList: any[] = [];
 
-    // 3. Fetch stats: history / creations count
-    const { count: historyCount } = await supabase
-      .from('ai_history')
-      .select('*', { count: 'exact', head: true });
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_admin_dashboard_stats');
+      if (!rpcError && rpcData) {
+        userCount = Number(rpcData.user_count) || 0;
+        historyCount = Number(rpcData.history_count) || 0;
+        userList = Array.isArray(rpcData.users) ? rpcData.users : [];
+      }
+    } catch (e) {
+      console.warn('RPC get_admin_dashboard_stats failed, falling back:', e);
+    }
 
-    // 4. Fetch registered profiles
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, avatar_url, role, created_at')
-      .order('created_at', { ascending: false })
-      .limit(50);
+    if (userList.length === 0) {
+      const { count: uCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      if (uCount) userCount = uCount;
+
+      const { count: hCount } = await supabase
+        .from('ai_history')
+        .select('*', { count: 'exact', head: true });
+      if (hCount) historyCount = hCount;
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url, role, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (profiles && profiles.length > 0) {
+        userList = profiles;
+        if (!userCount) userCount = profiles.length;
+      }
+    }
 
     // Always invalidate cache when admin inspects config to ensure live sync with Supabase changes
     invalidateSystemConfigCache();
@@ -54,11 +76,11 @@ export async function GET(req: NextRequest) {
         hasGemini,
       },
       stats: {
-        userCount: userCount || (profiles?.length ?? 1),
+        userCount: userCount || userList.length,
         historyCount: historyCount || 0,
         activeEnginesCount: 5,
       },
-      users: profiles || [],
+      users: userList,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
