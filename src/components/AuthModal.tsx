@@ -8,12 +8,13 @@ import { X, Mail, Lock, User, Sparkles, ArrowRight, CheckCircle2, AlertCircle } 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'signin' | 'signup';
 }
 
-export const AuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<Props> = ({ isOpen, onClose, initialTab = 'signin' }) => {
   const { isRtl, signInWithGoogle, signInWithEmail, signUpWithEmail } = useApp();
   const [mounted, setMounted] = useState(false);
-  const [tab, setTab] = useState<'signin' | 'signup'>('signin');
+  const [tab, setTab] = useState<'signin' | 'signup'>(initialTab);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -24,6 +25,14 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTab(initialTab);
+      setError(null);
+      setSuccessMsg(null);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen || !mounted) return null;
 

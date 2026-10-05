@@ -56,7 +56,7 @@ interface AdminConfigResponse {
 }
 
 export default function AdminDashboardPage() {
-  const { user, isAdmin, isLoadingUser, isRtl, theme } = useApp();
+  const { user, isAdmin, isLoadingUser, isRtl, theme, openAuthModal } = useApp();
   const [data, setData] = useState<AdminConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -139,6 +139,30 @@ export default function AdminDashboardPage() {
         <div className="flex flex-col items-center gap-3 text-slate-500">
           <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
           <span className="text-sm font-medium">باشقۇرغۇچى كىملىكى تەكشۈرۈلۈۋاتىدۇ...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#0f121a] border border-slate-200 dark:border-white/[0.12] rounded-3xl p-8 text-center space-y-5 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-500 mx-auto flex items-center justify-center border border-rose-500/30 shadow-lg shadow-rose-500/10">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">باشقۇرغۇچى ھوقۇقى تەلەپ قىلىنىدۇ</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              بۇ مەركىزىي سەھىپە پەقەت ئورگان باشقۇرغۇچىسى (<span className="font-mono text-indigo-400">yulgun353@gmail.com</span>) ئۈچۈنلا قوغدالغان. داۋاملاشتۇرۇش ئۈچۈن باشقۇرغۇچى ھېساباتى بىلەن كىرىڭ.
+            </p>
+          </div>
+          <button
+            onClick={() => openAuthModal('signin')}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 hover:opacity-95 transition"
+          >
+            باشقۇرغۇچى سۈپىتىدە كىرىش
+          </button>
         </div>
       </div>
     );

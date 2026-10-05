@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function TranslatePage() {
-  const { t, isRtl, settings, addHistoryItem } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
   const [sourceText, setSourceText] = useState('');
@@ -64,6 +64,7 @@ export default function TranslatePage() {
   };
 
   const handleTranslate = async () => {
+    if (!requireAuth()) return;
     if (!sourceText.trim() || loading) return;
     setLoading(true);
 

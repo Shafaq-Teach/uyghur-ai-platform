@@ -108,13 +108,13 @@ export default function HomePage() {
   return (
     <div className="space-y-10 py-2 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Hero Cockpit Section */}
-      <section className="relative py-10 sm:py-16 overflow-hidden rounded-3xl tech-card border border-slate-200 dark:border-white/[0.08] px-6 sm:px-12 text-center">
+      <section className="relative py-7 sm:py-16 overflow-hidden rounded-3xl tech-card border border-slate-200 dark:border-white/[0.08] px-3 sm:px-8 lg:px-12 text-center w-full min-w-0">
         {/* Subtle grid light lines */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.08),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.18),rgba(255,255,255,0))] pointer-events-none" />
 
         {/* Hero Title */}
         <h1 
-          className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight max-w-5xl mx-auto leading-[1.3] sm:leading-[1.25] font-kawak"
+          className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight max-w-5xl mx-auto leading-[1.35] sm:leading-[1.25] font-kawak break-words px-1"
           style={{ fontFamily: "'UKIJ Kawak 3D', sans-serif" }}
         >
           <span 
@@ -126,46 +126,46 @@ export default function HomePage() {
         </h1>
 
         {/* Hero Description */}
-        <p className="mt-6 text-base sm:text-lg text-slate-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium">
+        <p className="mt-4 sm:mt-6 text-xs sm:text-base lg:text-lg text-slate-700 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium px-1 sm:px-2">
           {t.heroDesc}
         </p>
 
         {/* Technical Telemetry Dashboard Specs */}
-        <div className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto text-start">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-indigo-400 dark:hover:border-indigo-500/30 transition">
-            <div className="flex items-center justify-between mb-2">
-              <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 01</span>
+        <div className="mt-7 sm:mt-12 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 max-w-5xl mx-auto text-start w-full min-w-0">
+          <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-indigo-400 dark:hover:border-indigo-500/30 transition min-w-0 overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400" />
+              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 01</span>
             </div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">{t.spec1Title}</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t.spec1Desc}</p>
+            <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec1Title}</h4>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec1Desc}</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-emerald-400 dark:hover:border-emerald-500/30 transition">
-            <div className="flex items-center justify-between mb-2">
-              <Layers className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 02</span>
+          <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-emerald-400 dark:hover:border-emerald-500/30 transition min-w-0 overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 dark:text-emerald-400" />
+              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 02</span>
             </div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">{t.spec2Title}</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t.spec2Desc}</p>
+            <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec2Title}</h4>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec2Desc}</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-rose-400 dark:hover:border-rose-500/30 transition">
-            <div className="flex items-center justify-between mb-2">
-              <ShieldCheck className="w-4 h-4 text-rose-500 dark:text-rose-400" />
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 03</span>
+          <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-rose-400 dark:hover:border-rose-500/30 transition min-w-0 overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 dark:text-rose-400" />
+              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 03</span>
             </div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">{t.spec3Title}</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t.spec3Desc}</p>
+            <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec3Title}</h4>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec3Desc}</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-purple-400 dark:hover:border-purple-500/30 transition">
-            <div className="flex items-center justify-between mb-2">
-              <Cpu className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 04</span>
+          <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] hover:border-purple-400 dark:hover:border-purple-500/30 transition min-w-0 overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500 dark:text-purple-400" />
+              <span className="text-[9px] sm:text-[10px] font-mono text-slate-400 dark:text-slate-500">SPEC // 04</span>
             </div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">{t.spec4Title}</h4>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{t.spec4Desc}</p>
+            <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{t.spec4Title}</h4>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{t.spec4Desc}</p>
           </div>
         </div>
       </section>

@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Language, AIProvider, AppSettings, HistoryItem, FeatureModels, UserProfile, AppTheme } from '@/types';
 import { translations } from '@/lib/translations';
 import { supabase } from '@/lib/supabase';
+import { AuthModal } from '@/components/AuthModal';
+import { RegisterPromptModal } from '@/components/RegisterPromptModal';
 
 interface AppContextType {
   lang: Language;
@@ -28,6 +30,14 @@ interface AppContextType {
   signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error?: string; message?: string }>;
   signOut: () => Promise<void>;
+  isAuthModalOpen: boolean;
+  authModalTab: 'signin' | 'signup';
+  openAuthModal: (tab?: 'signin' | 'signup') => void;
+  closeAuthModal: () => void;
+  isRegisterPromptOpen: boolean;
+  openRegisterPrompt: () => void;
+  closeRegisterPrompt: () => void;
+  requireAuth: () => boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -61,6 +71,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoaded, setIsLoaded] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  // Auth and Register Prompt Modals
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup'>('signin');
+  const [isRegisterPromptOpen, setIsRegisterPromptOpen] = useState(false);
+
+  const openAuthModal = useCallback((tab: 'signin' | 'signup' = 'signin') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setIsAuthModalOpen(false);
+  }, []);
+
+  const openRegisterPrompt = useCallback(() => {
+    setIsRegisterPromptOpen(true);
+  }, []);
+
+  const closeRegisterPrompt = useCallback(() => {
+    setIsRegisterPromptOpen(false);
+  }, []);
+
+  const requireAuth = useCallback((): boolean => {
+    if (!user) {
+      setIsRegisterPromptOpen(true);
+      return false;
+    }
+    return true;
+  }, [user]);
 
   // Sync data with Supabase for logged in user
   const loadUserData = async (userId: string) => {
@@ -131,13 +171,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const buildProfile = async (u: any): Promise<UserProfile> => {
-    let role: 'admin' | 'user' = u.email === 'yulgun353@gmail.com' ? 'admin' : 'user';
+    const isMasterAdmin = u.email?.toLowerCase() === 'yulgun353@gmail.com';
+    let role: 'admin' | 'user' = isMasterAdmin ? 'admin' : 'user';
     try {
       const { data } = await supabase.from('profiles').select('role').eq('id', u.id).single();
       if (data?.role) {
         role = data.role as 'admin' | 'user';
       }
     } catch (_) {}
+
+    if (isMasterAdmin) {
+      role = 'admin';
+    }
 
     return {
       id: u.id,
@@ -186,19 +231,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoadingUser(false);
         await loadUserData(session.user.id);
       } else {
-        try {
-          setUser({
-            id: '7d3e4b47-3968-4b95-ba86-00e9be8c2c05',
-            email: 'yulgun353@gmail.com',
-            fullName: 'sersan (Admin)',
-            avatarUrl: '',
-            role: 'admin'
-          });
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem('uyghur_ai_admin_preview', 'true');
-          }
-          await loadUserData('7d3e4b47-3968-4b95-ba86-00e9be8c2c05');
-        } catch (_) {}
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem('uyghur_ai_admin_preview');
+        }
+        setUser(null);
         setIsLoadingUser(false);
       }
     });
@@ -465,18 +501,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeHistoryItem,
         clearHistory,
         user,
-        isAdmin: user?.role === 'admin' || user?.email === 'yulgun353@gmail.com',
+        isAdmin: user?.role === 'admin' || user?.email?.toLowerCase() === 'yulgun353@gmail.com',
         isLoadingUser,
         isCloudSynced: !!user,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
         signOut,
+        isAuthModalOpen,
+        authModalTab,
+        openAuthModal,
+        closeAuthModal,
+        isRegisterPromptOpen,
+        openRegisterPrompt,
+        closeRegisterPrompt,
+        requireAuth,
       }}
     >
       <div className={`min-h-screen ${isRtl ? 'font-uyghur' : 'font-sans'}`}>
         {children}
       </div>
+      <RegisterPromptModal
+        isOpen={isRegisterPromptOpen}
+        onClose={closeRegisterPrompt}
+        onConfirm={() => {
+          closeRegisterPrompt();
+          openAuthModal('signup');
+        }}
+      />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialTab={authModalTab}
+        onClose={closeAuthModal}
+      />
     </AppContext.Provider>
   );
 };

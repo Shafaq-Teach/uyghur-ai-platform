@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { Header } from '@/components/Header';
@@ -9,13 +9,21 @@ export const metadata: Metadata = {
   description: 'OpenRouter & Gemini powered multimodal platform for Uyghur & English: Chat, Translation, Image Studio, TTS, and Ad Video.',
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#08090d',
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ug" dir="rtl" className="dark" suppressHydrationWarning>
+    <html lang="ug" dir="rtl" className="dark w-full max-w-full overflow-x-hidden" suppressHydrationWarning>
       <head>
         <link rel="preload" href="/fonts/UKIJKa3D.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <script
@@ -35,13 +43,13 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="flex flex-col min-h-screen relative overflow-x-hidden transition-colors duration-200" suppressHydrationWarning>
+      <body className="flex flex-col min-h-screen relative w-full max-w-full overflow-x-hidden transition-colors duration-200" suppressHydrationWarning>
         {/* Subtle top ambient cyber glow */}
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[320px] bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[320px] bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-3xl pointer-events-none -z-10 overflow-hidden" />
         
         <AppProvider>
           <Header />
-          <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+          <main className="flex-1 w-full max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 min-w-0 overflow-x-hidden">
             {children}
           </main>
           <Footer />

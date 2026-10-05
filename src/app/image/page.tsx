@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function ImagePage() {
-  const { t, isRtl, settings, addHistoryItem } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [style, setStyle] = useState('photorealistic');
@@ -50,6 +50,7 @@ export default function ImagePage() {
   ];
 
   const handleGenerate = async () => {
+    if (!requireAuth()) return;
     if (!prompt.trim() || loading || imageLoading) return;
     setLoading(true);
     setImageLoading(true);

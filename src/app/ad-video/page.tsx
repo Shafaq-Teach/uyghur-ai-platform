@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function AdVideoPage() {
-  const { t, isRtl, settings, addHistoryItem } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
   const [productName, setProductName] = useState('ئالىي دەرىجىلىك تەبىئىي زەيتۇن مېيى');
   const [productDesc, setProductDesc] = useState('شېشە بوتۇلكىدىكى ئالتۇن رەڭلىك تەبىئىي سوغۇق پرېسلانغان زەيتۇن مېيى، ئۈستەل ئۈستىدە يورۇقلۇق نۇرى قايتىپ تۇرىدۇ.');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -85,6 +85,7 @@ export default function AdVideoPage() {
   };
 
   const handleGenerate = async () => {
+    if (!requireAuth()) return;
     if (!productName.trim() || loading) return;
     setLoading(true);
     setError('');

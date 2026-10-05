@@ -24,7 +24,7 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { t, isRtl, settings, addHistoryItem } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -81,6 +81,7 @@ export default function ChatPage() {
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!requireAuth()) return;
     if (!input.trim() || loading) return;
 
     const userMsg: ChatMessage = {
