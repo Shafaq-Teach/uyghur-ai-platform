@@ -51,7 +51,7 @@ export const translations = {
     spec4Desc: 'رەسىم، ئاۋاز ۋە چوڭقۇر پاراڭنى بىر كونسولدا باشقۇرۇش',
     modulesSectionTitle: 'ئاساسلىق سۈنئىي ئەقىل بۆلەكلىرى',
     modulesSectionDesc: 'ھەر بىر بۆلەككە ئايرىم سۈنئىي ئىدراك مودېلىنى بېكىتىش ۋە مەشغۇلات قىلىش ئىقتىدارى',
-    modulesOnline: 'بارلىق بۆلەكلەر نورمال: 5 / 5',
+    modulesOnline: 'بارلىق بۆلەكلەر نورمال: 6 / 6',
     openConsole: 'كونسولنى ئېچىش',
 
     // Feature Cards
@@ -65,6 +65,8 @@ export const translations = {
     fTtsDesc: 'تېكىستنى تەبىئىي، تەلەپپۇزى راۋان ئۇيغۇرچە ئاۋازغا ئايلاندۇرۇش ۋە چۈشۈرۈش.',
     fVideoTitle: 'مەھسۇلات ئىلان فىلىمى',
     fVideoDesc: 'مەھسۇلات رەسىمىدىن ئادەم چىرايسىز، كىنو دەرىجىلىك يورۇقلۇق ۋە سۈرەت بىلەن كۆركەم ئىلان ھاسىل قىلىش.',
+    fHistoryTitle: 'ئەسەرلەر تارىخى',
+    fHistoryDesc: 'ھاسىل قىلىنغان بارلىق پاراڭ، تەرجىمە، رەسىم، ئاۋاز ۋە سىن خاتىرىلىرىنى ساقلاش ۋە باشقۇرۇش مەركىزى.',
 
     // Chat
     chatPlaceholder: 'سوئالىڭىز ياكى تېمىڭىزنى يېزىڭ (مەسىلەن: ئەدەبىيات، پىروگرامما، پەن-تېخنىكا)...',
@@ -323,7 +325,7 @@ export const translations = {
     spec4Desc: 'Manage image, voice, and deep reasoning from a single cockpit',
     modulesSectionTitle: 'Core Neural Engines',
     modulesSectionDesc: 'Independently configure and switch AI models for each creative workflow',
-    modulesOnline: 'MODULES ONLINE: 5 / 5',
+    modulesOnline: 'MODULES ONLINE: 6 / 6',
     openConsole: 'Open Console',
 
     // Feature Cards
@@ -337,6 +339,8 @@ export const translations = {
     fTtsDesc: 'Convert written text into natural-sounding Uyghur speech with waveform preview & download.',
     fVideoTitle: 'Product Ad Video',
     fVideoDesc: 'Generate commercial product videos strictly without human models—cinematic macro & lighting.',
+    fHistoryTitle: 'Creation History',
+    fHistoryDesc: 'Manage and review all your past chats, translations, generated images, voice clips, and videos.',
 
     // Chat
     chatPlaceholder: 'Type your message or prompt (e.g., literature, coding, analysis)...',
