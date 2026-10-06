@@ -12,6 +12,7 @@ import {
   Video, 
   History,
   Sparkles, 
+  Play,
   ArrowLeft, 
   ArrowRight, 
   ShieldCheck, 
@@ -36,11 +37,11 @@ export default function HomePage() {
       title: t.fChatTitle,
       desc: t.fChatDesc,
       icon: MessageSquare,
-      gradient: 'from-blue-500/20 via-indigo-500/10 to-transparent',
-      borderHover: 'hover:border-indigo-500/60 hover:shadow-indigo-500/10',
-      badgeColor: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30',
-      iconColor: 'text-indigo-400',
-      activeModel: settings.featureModels.chat,
+      accentColor: 'indigo',
+      borderHover: 'border-indigo-500/25 hover:border-indigo-500/60 hover:shadow-indigo-500/15',
+      badgeColor: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30',
+      dotColor: 'bg-indigo-400',
+      textColor: 'text-indigo-400',
       tag: lang === 'ug' ? 'ئەقلىي تەپەككۇر ۋە پاراڭ' : 'Reasoning & Coding',
       stats: lang === 'ug' ? 'تېز سۈرئەتلىك ئەقلىي پاراڭ' : '128K Context • Realtime',
     },
@@ -51,11 +52,11 @@ export default function HomePage() {
       title: t.fTransTitle,
       desc: t.fTransDesc,
       icon: Languages,
-      gradient: 'from-emerald-500/20 via-teal-500/10 to-transparent',
-      borderHover: 'hover:border-emerald-500/60 hover:shadow-emerald-500/10',
-      badgeColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-      iconColor: 'text-emerald-400',
-      activeModel: settings.featureModels.translate,
+      accentColor: 'emerald',
+      borderHover: 'border-emerald-500/25 hover:border-emerald-500/60 hover:shadow-emerald-500/15',
+      badgeColor: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+      dotColor: 'bg-emerald-400',
+      textColor: 'text-emerald-400',
       tag: lang === 'ug' ? '7 خىل ئۇسلۇب • ئاپتوماتىك' : '7 Tones • Auto Detect',
       stats: lang === 'ug' ? 'تەبىئىي راۋان تەرجىمە' : 'Nuance Engine • RTL Native',
     },
@@ -66,11 +67,11 @@ export default function HomePage() {
       title: t.fImageTitle,
       desc: t.fImageDesc,
       icon: ImageIcon,
-      gradient: 'from-rose-500/20 via-pink-500/10 to-transparent',
-      borderHover: 'hover:border-rose-500/60 hover:shadow-rose-500/10',
-      badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-      iconColor: 'text-rose-400',
-      activeModel: settings.featureModels.image,
+      accentColor: 'rose',
+      borderHover: 'border-rose-500/25 hover:border-rose-500/60 hover:shadow-rose-500/15',
+      badgeColor: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
+      dotColor: 'bg-rose-400',
+      textColor: 'text-rose-400',
       tag: lang === 'ug' ? 'سەنئەت ۋە يۇقىرى سۈزۈكلۈك' : 'FLUX / SD / Imagen 3',
       stats: lang === 'ug' ? 'ئەڭ يۇقىرى سۈزۈكلۈك • بېيىتىلغان تەسۋىر' : 'Ultra HD • Prompt Auto-Enhance',
     },
@@ -81,11 +82,11 @@ export default function HomePage() {
       title: t.fTtsTitle,
       desc: t.fTtsDesc,
       icon: Volume2,
-      gradient: 'from-amber-500/20 via-orange-500/10 to-transparent',
-      borderHover: 'hover:border-amber-500/60 hover:shadow-amber-500/10',
-      badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-      iconColor: 'text-amber-400',
-      activeModel: settings.featureModels.tts,
+      accentColor: 'amber',
+      borderHover: 'border-amber-500/25 hover:border-amber-500/60 hover:shadow-amber-500/15',
+      badgeColor: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+      dotColor: 'bg-amber-400',
+      textColor: 'text-amber-400',
       tag: lang === 'ug' ? 'ئۇيغۇرچە ئاۋازلاشتۇرۇش' : 'Uyghur Vocalization',
       stats: lang === 'ug' ? 'سۈزۈك ئاۋاز • تەبىئىي ئوقۇش' : 'Neural Synthesis • Waveform',
     },
@@ -96,11 +97,11 @@ export default function HomePage() {
       title: t.fVideoTitle,
       desc: t.fVideoDesc,
       icon: Video,
-      gradient: 'from-purple-500/20 via-violet-500/10 to-transparent',
-      borderHover: 'hover:border-purple-500/60 hover:shadow-purple-500/10',
-      badgeColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-      iconColor: 'text-purple-400',
-      activeModel: settings.featureModels.video,
+      accentColor: 'purple',
+      borderHover: 'border-purple-500/25 hover:border-purple-500/60 hover:shadow-purple-500/15',
+      badgeColor: 'text-purple-300 bg-purple-500/10 border-purple-500/30',
+      dotColor: 'bg-purple-400',
+      textColor: 'text-purple-400',
       tag: lang === 'ug' ? 'ئادەمسىز • ماكرو فىلىم' : 'Strictly No Humans • Macro',
       stats: lang === 'ug' ? 'كەسپىي سۈپەت • ئەقلىي سېنارىيە' : '3-Layer Safety • Cinematic 4K',
     },
@@ -111,11 +112,11 @@ export default function HomePage() {
       title: t.fHistoryTitle,
       desc: t.fHistoryDesc,
       icon: History,
-      gradient: 'from-cyan-500/20 via-sky-500/10 to-transparent',
-      borderHover: 'hover:border-cyan-500/60 hover:shadow-cyan-500/10',
-      badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-      iconColor: 'text-cyan-400',
-      activeModel: 'Supabase / Local Vault',
+      accentColor: 'cyan',
+      borderHover: 'border-cyan-500/25 hover:border-cyan-500/60 hover:shadow-cyan-500/15',
+      badgeColor: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+      dotColor: 'bg-cyan-400',
+      textColor: 'text-cyan-400',
       tag: lang === 'ug' ? 'ئەسەرلەرنى ساقلاش ۋە باشقۇرۇش' : 'Cloud & Local Vault',
       stats: lang === 'ug' ? 'تولۇق كۆرۈش • مەڭگۈلۈك ساقلاش' : 'Cloud Sync • Instant Search',
     },
@@ -211,42 +212,153 @@ export default function HomePage() {
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature) => {
-            const Icon = feature.icon;
             return (
               <Link
                 key={feature.id}
                 href={feature.href}
-                className={`group tech-card rounded-3xl p-6 transition-all duration-300 relative overflow-hidden flex flex-col justify-between hover:-translate-y-1 ${feature.borderHover}`}
+                className={`group bg-[#090b14]/90 dark:bg-[#0a0d18]/95 border rounded-[26px] p-6 transition-all duration-300 relative overflow-hidden flex flex-col justify-between hover:-translate-y-1 shadow-xl hover:shadow-2xl ${feature.borderHover}`}
               >
                 <div>
+                  {/* Top Header: Badge on right/start and Code on left/end */}
                   <div className="flex items-center justify-between gap-2 mb-4">
-                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
                       {feature.code}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feature.badgeColor}`}>
-                      {feature.tag}
+                    <span className={`text-[11px] font-bold px-3 py-1 rounded-full border flex items-center gap-1.5 ${feature.badgeColor}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${feature.dotColor}`} />
+                      <span>{feature.tag}</span>
                     </span>
                   </div>
 
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Icon className={`w-6 h-6 ${feature.iconColor}`} />
-                  </div>
+                  {/* Visual Mockup Box */}
+                  {feature.id === 'chat' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#090b14] border border-indigo-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-indigo-500/40 transition">
+                      <div className="space-y-2 flex-1 max-w-[65%]">
+                        <div className="h-2.5 w-full rounded-full bg-gradient-to-r from-indigo-500/35 to-indigo-500/10" />
+                        <div className="h-2.5 w-3/4 rounded-full bg-gradient-to-r from-indigo-500/25 to-indigo-500/5" />
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse delay-150" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse delay-300" />
+                        </div>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0 shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+                        <MessageSquare className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
 
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {feature.id === 'translate' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#081211] border border-emerald-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-emerald-500/40 transition">
+                      <div className="flex flex-col justify-between h-full py-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/[0.08] text-slate-300 border border-white/[0.1]">
+                            EN
+                          </span>
+                          <span className="text-[10px] text-emerald-400/80 font-bold">---</span>
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/25 text-emerald-300 border border-emerald-500/40">
+                            ئۇي
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-mono text-emerald-400/80 tracking-wider font-semibold">
+                          UG ⇄ EN ⇄ TR ⇄ AR
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                        <Languages className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {feature.id === 'image' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#140a12] border border-rose-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-rose-500/40 transition">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-11 h-13 rounded-xl bg-gradient-to-tr from-rose-600 via-pink-600 to-indigo-600 shadow-lg shadow-rose-500/30 p-0.5 flex items-center justify-center shrink-0 group-hover:rotate-2 transition-transform">
+                          <div className="w-full h-full rounded-[10px] bg-black/30 backdrop-blur-xs flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-white/90" />
+                          </div>
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-mono text-rose-300/90 font-medium leading-tight">
+                          4K • 8K • 16:9 • Ultra Realistic
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 shadow-sm shadow-rose-500/20 group-hover:scale-105 transition-transform">
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {feature.id === 'tts' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#141009] border border-amber-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-amber-500/40 transition">
+                      <div className="flex flex-col justify-between h-full py-0.5">
+                        <div className="flex items-end gap-1 h-6">
+                          <span className="w-1 h-3 rounded-full bg-amber-400" />
+                          <span className="w-1 h-5 rounded-full bg-amber-400" />
+                          <span className="w-1 h-6 rounded-full bg-amber-300" />
+                          <span className="w-1 h-4 rounded-full bg-amber-400" />
+                          <span className="w-1 h-2 rounded-full bg-amber-400" />
+                          <span className="w-1 h-5 rounded-full bg-amber-300" />
+                          <span className="w-1 h-3 rounded-full bg-amber-400" />
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-mono text-amber-300/90 font-medium">
+                          HD Studio Voice • 48kHz
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <Volume2 className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {feature.id === 'video' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#120a1b] border border-purple-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-purple-500/40 transition">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-purple-500/30 group-hover:scale-105 transition-transform shrink-0">
+                          <Play className="w-4 h-4 fill-white ms-0.5" />
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-mono text-purple-300/90 font-medium leading-tight">
+                          Cinematic 60fps • 3D Render
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 shadow-sm shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                        <Video className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {feature.id === 'history' && (
+                    <div className="w-full h-24 rounded-2xl bg-[#091317] border border-cyan-500/20 p-3.5 flex items-center justify-between mb-4 relative overflow-hidden group-hover:border-cyan-500/40 transition">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex flex-col justify-center gap-1.5 px-2 shadow-md shadow-cyan-500/20 shrink-0">
+                          <div className="h-1 w-full bg-cyan-400/80 rounded-full" />
+                          <div className="h-1 w-2/3 bg-cyan-400/50 rounded-full" />
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-mono text-cyan-300/90 font-medium leading-tight">
+                          Cloud Vault • Encrypted
+                        </span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0 shadow-sm shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                        <History className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  <h3 className="text-lg font-bold text-slate-100 group-hover:text-white transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed line-clamp-2">
                     {feature.desc}
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-xs gap-2">
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                    {feature.stats}
-                  </span>
-                  <span className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform shrink-0">
+                <div className="mt-6 pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs gap-2">
+                  <span className={`flex items-center gap-1.5 font-bold transition-all shrink-0 ${feature.textColor} group-hover:opacity-90`}>
+                    <Arrow className="w-3.5 h-3.5 rtl:rotate-180 transition-transform group-hover:-translate-x-1 rtl:group-hover:-translate-x-1" />
                     <span>{t.openConsole}</span>
-                    <Arrow className="w-3.5 h-3.5 rtl:rotate-180" />
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                    <span>{feature.stats}</span>
+                    <span className="text-slate-600 dark:text-slate-500">•</span>
                   </span>
                 </div>
               </Link>
