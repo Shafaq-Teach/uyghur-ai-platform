@@ -50,6 +50,7 @@ export interface UserProfile {
   fullName?: string;
   avatarUrl?: string;
   role?: 'admin' | 'user';
+  coins?: number;
 }
 
 export interface SystemConfig {

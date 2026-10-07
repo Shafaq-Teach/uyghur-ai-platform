@@ -38,6 +38,8 @@ interface AppContextType {
   openRegisterPrompt: () => void;
   closeRegisterPrompt: () => void;
   requireAuth: () => boolean;
+  refreshUserCoins: () => Promise<number>;
+  deductCoins: (cost: number) => Promise<{ success: boolean; remaining?: number; error?: string }>;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -173,10 +175,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const buildProfile = async (u: any): Promise<UserProfile> => {
     const isMasterAdmin = u.email?.toLowerCase() === 'yulgun353@gmail.com';
     let role: 'admin' | 'user' = isMasterAdmin ? 'admin' : 'user';
+    let coins = 100;
     try {
-      const { data } = await supabase.from('profiles').select('role').eq('id', u.id).single();
+      const { data } = await supabase.from('profiles').select('role, coins').eq('id', u.id).single();
       if (data?.role) {
         role = data.role as 'admin' | 'user';
+      }
+      if (typeof data?.coins === 'number') {
+        coins = data.coins;
       }
     } catch (_) {}
 
@@ -190,8 +196,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       fullName: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0],
       avatarUrl: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
       role,
+      coins,
     };
   };
+
+  const refreshUserCoins = useCallback(async (): Promise<number> => {
+    if (!user?.id) return 0;
+    try {
+      const { data } = await supabase.from('profiles').select('coins').eq('id', user.id).single();
+      if (data && typeof data.coins === 'number') {
+        setUser((prev) => (prev ? { ...prev, coins: data.coins } : null));
+        return data.coins;
+      }
+    } catch (e) {
+      console.warn('Failed to refresh coins:', e);
+    }
+    return user?.coins ?? 0;
+  }, [user?.id, user?.coins]);
+
+  const deductCoins = useCallback(
+    async (cost: number): Promise<{ success: boolean; remaining?: number; error?: string }> => {
+      if (!user) {
+        setIsRegisterPromptOpen(true);
+        return {
+          success: false,
+          error: 'سۈنئى ئەقىل ئىقتىدارلىرىنى ئىشلىتىش ئۈچۈن ئالدى بىلەن كىرىڭ ياكى تىزىملىتىڭ!',
+        };
+      }
+
+      const currentCoins = user.coins ?? 100;
+      if (currentCoins < cost) {
+        return {
+          success: false,
+          remaining: currentCoins,
+          error: `تەڭگىڭىز يېتەرلىك ئەمەس! بۇ مەشغۇلاتقا ${cost} تەڭگە كېتىدۇ، سىزدە پەقەت ${currentCoins} تەڭگە قالدى.`,
+        };
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('deduct_user_coins', {
+          user_uuid: user.id,
+          cost: cost,
+        });
+
+        if (error) {
+          const errMsg = error.message?.includes('Insufficient coins')
+            ? `تەڭگىڭىز يېتەرلىك ئەمەس! بۇ مەشغۇلاتقا ${cost} تەڭگە كېتىدۇ.`
+            : (error.message || 'تەڭگە ئېلىشتا خاتالىق كۆرۈلدى');
+          return { success: false, error: errMsg };
+        }
+
+        const newBalance = typeof data === 'number' ? data : currentCoins - cost;
+        setUser((prev) => (prev ? { ...prev, coins: newBalance } : null));
+        return { success: true, remaining: newBalance };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'خاتالىق كۆرۈلدى' };
+      }
+    },
+    [user]
+  );
 
   const loadGlobalSystemModels = async () => {
     try {
@@ -543,6 +606,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openRegisterPrompt,
         closeRegisterPrompt,
         requireAuth,
+        refreshUserCoins,
+        deductCoins,
       }}
     >
       <div className={`min-h-screen ${isRtl ? 'font-uyghur' : 'font-sans'}`}>

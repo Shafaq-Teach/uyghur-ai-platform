@@ -37,7 +37,10 @@ import {
   Settings,
   ChevronRight,
   Check,
-  X
+  X,
+  Coins,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { SearchableModelSelect } from '@/components/SearchableModelSelect';
 
@@ -77,6 +80,7 @@ interface AdminConfigResponse {
     email: string;
     full_name: string;
     role: string;
+    coins?: number;
     created_at: string;
   }>;
   recentActivities?: Array<{
@@ -100,7 +104,7 @@ interface DiagnosticsData {
 }
 
 export default function AdminDashboardPage() {
-  const { user, isAdmin, isLoadingUser, isRtl, theme, openAuthModal } = useApp();
+  const { user, isAdmin, isLoadingUser, isRtl, theme, openAuthModal, refreshUserCoins } = useApp();
   const [data, setData] = useState<AdminConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -273,6 +277,61 @@ export default function AdminDashboardPage() {
       alert('خاتالىق: ' + err.message);
     } finally {
       setRoleUpdatingId(null);
+    }
+  };
+
+  const [coinAdjustingId, setCoinAdjustingId] = useState<string | null>(null);
+
+  const handleAdjustUserCoins = async (targetUser: any, mode: 'add' | 'subtract', amount?: number) => {
+    let finalAmount = amount;
+    if (!finalAmount) {
+      const promptText = mode === 'add'
+        ? `«${targetUser.full_name || targetUser.email}» غا قانچە تەڭگە قوشماقچى؟ (مەسىلەن: 100)`
+        : `«${targetUser.full_name || targetUser.email}» دىن قانچە تەڭگە ئېلىۋەتمەكچى؟ (مەسىلەن: 50)`;
+      const inputVal = prompt(promptText, '50');
+      if (!inputVal) return;
+      finalAmount = parseInt(inputVal, 10);
+      if (isNaN(finalAmount) || finalAmount <= 0) {
+        alert('ئۈنۈملۈك مۇسبەت سان كىرگۈزۈڭ!');
+        return;
+      }
+    }
+
+    try {
+      setCoinAdjustingId(targetUser.id);
+      const res = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adjustUserCoins: {
+            userId: targetUser.id,
+            amount: finalAmount,
+            mode: mode,
+          },
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || 'تەڭگە تەڭشەش مەغلۇپ بولدى');
+      }
+
+      const updatedCoins = resData.coins;
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          users: prev.users.map((u) => (u.id === targetUser.id ? { ...u, coins: updatedCoins } : u)),
+        };
+      });
+
+      if (targetUser.id === user?.id) {
+        refreshUserCoins();
+      }
+    } catch (err: any) {
+      alert('خاتالىق: ' + err.message);
+    } finally {
+      setCoinAdjustingId(null);
     }
   };
 
@@ -860,14 +919,15 @@ export default function AdminDashboardPage() {
                   <th className="py-3.5 px-4">ئېلخەت ئادرېسى</th>
                   <th className="py-3.5 px-4">ئىسمى</th>
                   <th className="py-3.5 px-4">ھازىرقى ھوقۇقى (Role)</th>
+                  <th className="py-3.5 px-4">تەڭگە سانى</th>
                   <th className="py-3.5 px-4">قوشۇلغان ۋاقتى</th>
-                  <th className="py-3.5 px-4 text-center">مەشغۇلات (ھوقۇق تەڭشەش)</th>
+                  <th className="py-3.5 px-4 text-center">مەشغۇلات (تەڭگە & ھوقۇق)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400">
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
                       ئىزدەش نەتىجىسىدە ئابۇنىت تېپىلمىدى.
                     </td>
                   </tr>
@@ -876,6 +936,7 @@ export default function AdminDashboardPage() {
                     const isTargetAdmin = u.role === 'admin';
                     const isSelf = u.email === user?.email;
                     const isUpdating = roleUpdatingId === u.id;
+                    const isCoinUpdating = coinAdjustingId === u.id;
 
                     return (
                       <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -899,38 +960,96 @@ export default function AdminDashboardPage() {
                             {isTargetAdmin ? 'باشقۇرغۇچى (Admin)' : 'ئادەتتىكى ئەزا (User)'}
                           </span>
                         </td>
+                        <td className="py-3.5 px-4">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold">
+                            <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="font-mono text-xs">{u.coins ?? 100}</span>
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400/80">تەڭگە</span>
+                          </div>
+                        </td>
                         <td className="py-3.5 px-4 font-mono text-slate-400">
                           {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          {isSelf ? (
-                            <span className="text-[11px] text-slate-400 font-medium">قوغدالغان</span>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={isUpdating}
-                              onClick={() => handleToggleUserRole(u)}
-                              className={`px-3 py-1 rounded-xl text-[11px] font-bold transition flex items-center gap-1 mx-auto ${
-                                isTargetAdmin
-                                  ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
-                                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'
-                              }`}
-                            >
-                              {isUpdating ? (
-                                <RefreshCw className="w-3 h-3 animate-spin" />
-                              ) : isTargetAdmin ? (
-                                <>
-                                  <UserX className="w-3 h-3" />
-                                  <span>User غا چۈشۈرۈش</span>
-                                </>
+                          <div className="flex items-center justify-center gap-2 flex-wrap">
+                            {/* Coin adjustment buttons */}
+                            <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08]">
+                              {isCoinUpdating ? (
+                                <span className="px-2 py-0.5 text-[10px] text-amber-400 flex items-center gap-1">
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  <span>تەڭشىلىۋاتىدۇ...</span>
+                                </span>
                               ) : (
                                 <>
-                                  <UserCheck className="w-3 h-3" />
-                                  <span>Admin قىلىپ بېكىتىش</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustUserCoins(u, 'add', 50)}
+                                    title="50 تەڭگە قوشۇش"
+                                    className="px-1.5 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 font-bold text-[10px] flex items-center gap-0.5 transition"
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                    <span>50</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustUserCoins(u, 'add', 100)}
+                                    title="100 تەڭگە قوشۇش"
+                                    className="px-1.5 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 font-bold text-[10px] flex items-center gap-0.5 transition"
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                    <span>100</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustUserCoins(u, 'subtract', 25)}
+                                    title="25 تەڭگە تۇتۇۋېلىش"
+                                    className="px-1.5 py-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 font-bold text-[10px] flex items-center gap-0.5 transition"
+                                  >
+                                    <Minus className="w-2.5 h-2.5" />
+                                    <span>25</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustUserCoins(u, 'add')}
+                                    title="باشقا مىقداردا تەڭشەش"
+                                    className="px-1.5 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-[10px] transition"
+                                  >
+                                    باشقا
+                                  </button>
                                 </>
                               )}
-                            </button>
-                          )}
+                            </div>
+
+                            {/* Role management button */}
+                            {isSelf ? (
+                              <span className="text-[10px] text-slate-400 font-medium px-2 py-1">قوغدالغان</span>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => handleToggleUserRole(u)}
+                                className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center gap-1 ${
+                                  isTargetAdmin
+                                    ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
+                                    : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30'
+                                }`}
+                              >
+                                {isUpdating ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : isTargetAdmin ? (
+                                  <>
+                                    <UserX className="w-3 h-3" />
+                                    <span>User</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-3 h-3" />
+                                    <span>Admin</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

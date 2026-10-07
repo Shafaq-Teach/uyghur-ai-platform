@@ -24,7 +24,7 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -83,6 +83,20 @@ export default function ChatPage() {
     if (e) e.preventDefault();
     if (!requireAuth()) return;
     if (!input.trim() || loading) return;
+
+    const coinCheck = await deductCoins(15);
+    if (!coinCheck.success) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: 'err-' + Date.now(),
+          role: 'assistant',
+          content: coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: 'u-' + Date.now(),

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function TranslatePage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
   const [sourceText, setSourceText] = useState('');
@@ -66,6 +66,13 @@ export default function TranslatePage() {
   const handleTranslate = async () => {
     if (!requireAuth()) return;
     if (!sourceText.trim() || loading) return;
+
+    const coinCheck = await deductCoins(15);
+    if (!coinCheck.success) {
+      setTranslatedText(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).');
+      return;
+    }
+
     setLoading(true);
 
     try {

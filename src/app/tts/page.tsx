@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function TtsPage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
   const [text, setText] = useState('سۈنئىي ئىدراك تور بېكىتىگە كەلگىنىڭىزنى قىزغىن قارشى ئالىمىز! بۈگۈن سىزگە نېمە ياردەم قىلاي؟');
   const [voice, setVoice] = useState('female1');
   const [speed, setSpeed] = useState(1.0);
@@ -47,6 +47,13 @@ export default function TtsPage() {
   const handleGenerateAndPlay = async () => {
     if (!requireAuth()) return;
     if (!text.trim() || loading) return;
+
+    const coinCheck = await deductCoins(15);
+    if (!coinCheck.success) {
+      setError(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).');
+      return;
+    }
+
     setLoading(true);
     setError('');
 

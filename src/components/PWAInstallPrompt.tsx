@@ -19,12 +19,23 @@ export function PWAInstallPrompt() {
   const [installedSuccess, setInstalledSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if already running as installed standalone app
+    // Check if already running as installed standalone app or native Capacitor / WebView
     const checkStandalone = () => {
-      const isStandaloneMode = 
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true;
-      setIsStandalone(isStandaloneMode);
+      const isCapacitor = 
+        typeof window !== 'undefined' && (
+          !!(window as any)?.Capacitor ||
+          window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator as any).standalone === true ||
+          /wv|Android.*Version\/[0-9.]+|Capacitor/i.test(window.navigator.userAgent) ||
+          window.location.search.includes('is_app=true')
+        );
+      setIsStandalone(Boolean(isCapacitor));
+
+      try {
+        if (localStorage.getItem('pwa_banner_dismissed') === 'true') {
+          setIsDismissed(true);
+        }
+      } catch (_) {}
     };
 
     checkStandalone();
@@ -147,14 +158,14 @@ export function PWAInstallPrompt() {
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 flex-wrap">
             <a
-              href="/uyghur-ai-v1.0.0.apk"
-              download="uyghur-ai-v1.0.0.apk"
+              href="/uyghur-ai-v1.0.1.apk"
+              download="uyghur-ai-v1.0.1.apk"
               className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/40 border border-cyan-400/40 text-cyan-200 text-xs font-black shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
               style={{ fontFamily: "'UKIJ Ekran', sans-serif" }}
               title="Android APK ھۆججىتىنى بىۋاسىتە چۈشۈرۈش"
             >
               <Download className="w-3.5 h-3.5 text-cyan-300" />
-              <span>{lang === 'ug' ? 'APK چۈشۈرۈش (9MB)' : 'Download APK'}</span>
+              <span>{lang === 'ug' ? 'APK چۈشۈرۈش (v1.0.1)' : 'Download APK'}</span>
             </a>
             <button
               type="button"
@@ -167,7 +178,12 @@ export function PWAInstallPrompt() {
             </button>
             <button
               type="button"
-              onClick={() => setIsDismissed(true)}
+              onClick={() => {
+                setIsDismissed(true);
+                try {
+                  localStorage.setItem('pwa_banner_dismissed', 'true');
+                } catch (_) {}
+              }}
               className="p-2 rounded-xl text-white/50 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] transition"
               title="Close / ياپ"
               aria-label="Close install prompt"

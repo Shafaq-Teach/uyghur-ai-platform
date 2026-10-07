@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, email, full_name, avatar_url, role, created_at')
+        .select('id, email, full_name, avatar_url, role, coins, created_at')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -145,6 +145,30 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: roleErr.message }, { status: 400 });
       }
       return NextResponse.json({ success: true, message: 'رول مۇۋەپپەقىيەتلىك ئۆزگەرتىلدى' });
+    }
+
+    // Handle user coins adjustment (add / subtract)
+    if (body.adjustUserCoins) {
+      const { userId, amount, mode } = body.adjustUserCoins;
+      if (!userId || !amount || !mode) {
+        return NextResponse.json({ error: 'userId, amount ۋە mode تەلەپ قىلىنىدۇ' }, { status: 400 });
+      }
+
+      const { data: newCoins, error: coinErr } = await supabase.rpc('admin_adjust_coins', {
+        target_user_id: userId,
+        amount: Number(amount),
+        mode: mode,
+      });
+
+      if (coinErr) {
+        return NextResponse.json({ error: coinErr.message }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        coins: newCoins,
+        message: mode === 'add' ? `${amount} تەڭگە قوشۇلدى` : `${amount} تەڭگە ئېلىۋېتىلدى`,
+      });
     }
 
     const { activeModels, fallbackModels, quotaSettings, announcement, maintenanceMode } = body;

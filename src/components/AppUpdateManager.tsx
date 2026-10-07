@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Sparkles, RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = '1.0.0';
-export const CURRENT_BUILD_NUMBER = 100;
+export const CURRENT_APP_VERSION = '1.0.1';
+export const CURRENT_BUILD_NUMBER = 101;
 
 interface VersionData {
   version: string;

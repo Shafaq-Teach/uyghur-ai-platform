@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function ImagePage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [style, setStyle] = useState('photorealistic');
@@ -55,6 +55,13 @@ export default function ImagePage() {
   const handleGenerate = async () => {
     if (!requireAuth()) return;
     if (!prompt.trim() || loading || imageLoading) return;
+
+    const coinCheck = await deductCoins(25);
+    if (!coinCheck.success) {
+      setError(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (25 تەڭگە كېتىدۇ)');
+      return;
+    }
+
     setLoading(true);
     setImageLoading(true);
     setResultImage(null);
