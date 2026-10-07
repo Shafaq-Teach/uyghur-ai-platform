@@ -33,13 +33,24 @@ public class MainActivity extends BridgeActivity {
 
     private void startDownloadAndInstall(String url) {
         try {
+            String filename = "uyghur-ai-update.apk";
+            try {
+                if (url != null && url.contains("/")) {
+                    String part = url.substring(url.lastIndexOf('/') + 1);
+                    if (part.endsWith(".apk")) {
+                        filename = part;
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            final String finalFilename = filename;
             DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
             Uri uri = Uri.parse(url);
             DownloadManager.Request request = new DownloadManager.Request(uri);
             request.setMimeType("application/vnd.android.package-archive");
             request.setTitle("Uyghur AI");
-            request.setDescription("1.0.1 نەشرى قاچىلىنىۋاتىدۇ...");
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "uyghur-ai-v1.0.1.apk");
+            request.setDescription("ئەپ يېڭى نەشرى قاچىلىنىۋاتىدۇ...");
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, finalFilename);
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
             final long downloadId = dm.enqueue(request);
@@ -50,7 +61,7 @@ public class MainActivity extends BridgeActivity {
                     try {
                         long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
                         if (id == downloadId) {
-                            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "uyghur-ai-v1.0.1.apk");
+                            File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), finalFilename);
                             if (file.exists()) {
                                 Intent promptInstall = new Intent(Intent.ACTION_VIEW);
                                 Uri apkUri;
