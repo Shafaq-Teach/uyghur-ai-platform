@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ئۇيغۇر AI</string>
-    <string name="title_activity_main">ئۇيغۇر AI</string>
+    <string name="app_name">Uyghur AI</string>
+    <string name="title_activity_main">Uyghur AI</string>
     <string name="package_name">com.uyghur.ai.platform</string>
     <string name="custom_url_scheme">com.uyghur.ai.platform</string>
 </resources>
