@@ -316,9 +316,14 @@ export default function AdminDashboardPage() {
         throw new Error(resData.error || 'تەڭگە تەڭشەش مەغلۇپ بولدى');
       }
 
-      const updatedCoins = resData.coins;
+      const updatedCoins = typeof resData.coins === 'number'
+        ? resData.coins
+        : typeof resData.coins?.coins === 'number'
+          ? resData.coins.coins
+          : (typeof targetUser.coins === 'number' ? targetUser.coins : 100);
+
       setData((prev) => {
-        if (!prev) return prev;
+        if (!prev || !Array.isArray(prev.users)) return prev;
         return {
           ...prev,
           users: prev.users.map((u) => (u.id === targetUser.id ? { ...u, coins: updatedCoins } : u)),
@@ -963,7 +968,9 @@ export default function AdminDashboardPage() {
                         <td className="py-3.5 px-4">
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold">
                             <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span className="font-mono text-xs">{u.coins ?? 100}</span>
+                            <span className="font-mono text-xs">
+                              {typeof u.coins === 'number' ? u.coins : (typeof u.coins?.coins === 'number' ? u.coins.coins : 100)}
+                            </span>
                             <span className="text-[10px] text-amber-600 dark:text-amber-400/80">تەڭگە</span>
                           </div>
                         </td>

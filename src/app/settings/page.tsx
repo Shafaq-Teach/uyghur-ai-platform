@@ -362,7 +362,7 @@ export default function SettingsPage() {
             <span>ئەپ نەشرى ۋە كونترول ھالىتى (App Version & Update Control)</span>
           </h2>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            v1.0.0 (Build 100)
+            v1.0.1 (Build 101)
           </span>
         </div>
 
@@ -370,7 +370,7 @@ export default function SettingsPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 tech-pulse" />
-              <h3 className="text-xs font-bold text-white">رەسمىي ئالىي ئەپ نەشرى 1.0.0 ئىشقا كىرىشتۈرۈلدى</h3>
+              <h3 className="text-xs font-bold text-white">رەسمىي ئالىي ئەپ نەشرى 1.0.1 ئىشقا كىرىشتۈرۈلدى</h3>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               سۇپىدا مەجبۇرىي ئاپتوماتىك يېڭىلاش ھالىتى تەستىقلانغان. يېڭى نەشر تارقىتىلغان ھامان 360 گىرادۇسلۇق ئىلگىرىلەش كۆرسەتكۈچى بىلەن ئەپ ئىچىدىن بىۋاسىتە يېڭىلىنىدۇ.
@@ -378,11 +378,13 @@ export default function SettingsPage() {
           </div>
           <div className="shrink-0 flex items-center gap-2">
             <a
-              href="/uyghur-ai-v1.0.0.apk"
-              download="uyghur-ai-v1.0.0.apk"
+              href="https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk"
+              target="_blank"
+              rel="noopener noreferrer"
+              download="uyghur-ai-v1.0.1.apk"
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
             >
-              <span>APK چۈشۈرۈش (9.2MB)</span>
+              <span>APK چۈشۈرۈش (1.0.1)</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
             <a

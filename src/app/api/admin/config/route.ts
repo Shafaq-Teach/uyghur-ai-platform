@@ -154,20 +154,40 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'userId, amount ۋە mode تەلەپ قىلىنىدۇ' }, { status: 400 });
       }
 
-      const { data: newCoins, error: coinErr } = await supabase.rpc('admin_adjust_coins', {
-        target_user_id: userId,
-        amount: Number(amount),
-        mode: mode,
-      });
+      const numAmount = Math.abs(parseInt(String(amount), 10)) || 0;
+      if (numAmount <= 0) {
+        return NextResponse.json({ error: 'مۇسبەت سان كىرگۈزۈڭ' }, { status: 400 });
+      }
 
-      if (coinErr) {
-        return NextResponse.json({ error: coinErr.message }, { status: 400 });
+      // Fetch current profile coins
+      const { data: prof, error: getErr } = await supabase
+        .from('profiles')
+        .select('id, coins')
+        .eq('id', userId)
+        .single();
+
+      if (getErr || !prof) {
+        return NextResponse.json({ error: 'ئىشلەتكۈچى تېپىلمىدى' }, { status: 404 });
+      }
+
+      const currentCoins = typeof prof.coins === 'number' ? prof.coins : 100;
+      const targetCoins = mode === 'add'
+        ? currentCoins + numAmount
+        : Math.max(0, currentCoins - numAmount);
+
+      const { error: updErr } = await supabase
+        .from('profiles')
+        .update({ coins: targetCoins, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (updErr) {
+        return NextResponse.json({ error: updErr.message }, { status: 400 });
       }
 
       return NextResponse.json({
         success: true,
-        coins: newCoins,
-        message: mode === 'add' ? `${amount} تەڭگە قوشۇلدى` : `${amount} تەڭگە ئېلىۋېتىلدى`,
+        coins: targetCoins,
+        message: mode === 'add' ? `${numAmount} تەڭگە قوشۇلدى` : `${numAmount} تەڭگە ئېلىۋېتىلدى`,
       });
     }
 
