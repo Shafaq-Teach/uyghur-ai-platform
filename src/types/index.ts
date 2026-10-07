@@ -18,7 +18,7 @@ export interface FeatureModels {
   video: string;
 }
 
-export type AppTheme = 'dark' | 'light' | 'midnight' | 'warm';
+export type AppTheme = 'dark' | 'light' | 'system' | 'midnight' | 'warm';
 
 export interface AppSettings {
   language: Language;

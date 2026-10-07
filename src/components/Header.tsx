@@ -14,6 +14,7 @@ import {
   History, 
   Sun, 
   Moon, 
+  Monitor,
   Globe, 
   Menu, 
   X,
@@ -201,22 +202,32 @@ export const Header: React.FC = () => {
             <span className="font-semibold">{lang === 'ug' ? 'EN' : 'ئۇيغۇرچە'}</span>
           </button>
 
-          {/* 4-Theme 1-Click Cycler */}
+          {/* 3-Theme 1-Click Cycler (Dark, Light, System) */}
           {(() => {
-            const themeConfig = {
+            const themeConfig: Record<string, any> = {
               dark: {
                 icon: Moon,
                 color: 'text-indigo-400',
                 badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
-                label: t.themeDark,
+                label: lang === 'ug' ? 'كېچە' : 'Dark',
                 dot: 'bg-indigo-400',
+                index: '1/3',
               },
               light: {
                 icon: Sun,
                 color: 'text-amber-500',
                 badge: 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40',
-                label: t.themeLight,
+                label: lang === 'ug' ? 'كۈندۈز' : 'Light',
                 dot: 'bg-amber-400',
+                index: '2/3',
+              },
+              system: {
+                icon: Monitor,
+                color: 'text-cyan-400',
+                badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                label: lang === 'ug' ? 'سىستېما' : 'System',
+                dot: 'bg-cyan-400',
+                index: '3/3',
               },
               midnight: {
                 icon: Sparkles,
@@ -224,6 +235,7 @@ export const Header: React.FC = () => {
                 badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
                 label: t.themeMidnight,
                 dot: 'bg-cyan-400',
+                index: 'Custom',
               },
               warm: {
                 icon: Sunset,
@@ -231,6 +243,7 @@ export const Header: React.FC = () => {
                 badge: 'bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/40',
                 label: t.themeWarm,
                 dot: 'bg-orange-400',
+                index: 'Custom',
               },
             };
             const current = themeConfig[theme] || themeConfig.dark;
@@ -245,12 +258,12 @@ export const Header: React.FC = () => {
               >
                 <IconComponent className={`w-4 h-4 ${current.color} transition-transform group-hover:rotate-12`} />
                 <span className="hidden md:inline text-[11px] font-medium text-slate-700 dark:text-slate-300 max-w-[85px] truncate">
-                  {current.label.split(' ')[0]}
+                  {current.label}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className={`w-1.5 h-1.5 rounded-full ${current.dot} tech-pulse`} />
                   <span className="hidden sm:inline text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-white/[0.08] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/[0.06]">
-                    {theme === 'dark' ? '1/4' : theme === 'light' ? '2/4' : theme === 'midnight' ? '3/4' : '4/4'}
+                    {current.index}
                   </span>
                 </span>
               </button>
@@ -311,12 +324,11 @@ export const Header: React.FC = () => {
                 <Palette className="w-4 h-4 text-indigo-500" />
                 <span>كۆرۈنۈش ئۇسلۇبى / Themes</span>
               </span>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
                 {[
-                  { id: 'dark', label: lang === 'ug' ? 'قاراڭغۇ كىبېر' : 'Cyber Dark', icon: Moon, color: 'text-indigo-400', desc: 'Dark' },
-                  { id: 'light', label: lang === 'ug' ? 'يۇمشاق كۈندۈز' : 'Studio Light', icon: Sun, color: 'text-amber-500', desc: 'Light' },
-                  { id: 'midnight', label: lang === 'ug' ? 'تۈن كۆكى' : 'Midnight Navy', icon: Sparkles, color: 'text-cyan-400', desc: 'Midnight' },
-                  { id: 'warm', label: lang === 'ug' ? 'ئىسسىق قەغەز' : 'Sunset Sepia', icon: Sunset, color: 'text-orange-500', desc: 'Warm' },
+                  { id: 'dark', label: lang === 'ug' ? 'كېچە' : 'Dark', icon: Moon, color: 'text-indigo-400', desc: 'Dark Mode' },
+                  { id: 'light', label: lang === 'ug' ? 'كۈندۈز' : 'Light', icon: Sun, color: 'text-amber-500', desc: 'Light Mode' },
+                  { id: 'system', label: lang === 'ug' ? 'سىستېما' : 'System', icon: Monitor, color: 'text-cyan-400', desc: 'Auto Mode' },
                 ].map((th) => {
                   const Icon = th.icon;
                   const isSelected = theme === th.id;
@@ -325,17 +337,14 @@ export const Header: React.FC = () => {
                       key={th.id}
                       type="button"
                       onClick={() => setTheme(th.id as any)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium transition text-start ${
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-xl text-xs font-medium transition text-center ${
                         isSelected
                           ? 'bg-indigo-500/15 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-bold shadow-sm'
                           : 'bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-slate-400 hover:text-white'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 ${th.color} shrink-0`} />
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold">{th.label}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{th.desc}</div>
-                      </div>
+                      <Icon className={`w-4 h-4 ${th.color} mb-1`} />
+                      <div className="truncate font-semibold text-[11px]">{th.label}</div>
                     </button>
                   );
                 })}

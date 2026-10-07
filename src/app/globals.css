@@ -32,12 +32,12 @@
   font-display: swap;
 }
 
-.font-kawak, .font-kawak *, .font-3d, .font-3d * {
-  font-family: 'UKIJ Kawak 3D', 'UKIJ Ekran', sans-serif !important;
+.font-ekran, .font-ekran *, .font-kawak, .font-kawak *, .font-3d, .font-3d * {
+  font-family: 'UKIJ Ekran', system-ui, sans-serif !important;
 }
 
 .font-chiver, .font-kufi {
-  font-family: 'UKIJ Kawak 3D', 'UKIJ Chiver Kufi', 'UKIJ Kufi Chiwer', 'UKIJ Ekran', sans-serif !important;
+  font-family: 'UKIJ Ekran', 'UKIJ Chiver Kufi', 'UKIJ Kufi Chiwer', sans-serif !important;
 }
 
 @keyframes dynamicRainbowText {
@@ -131,19 +131,22 @@ html[data-theme="warm"] .rainbow-dynamic-text {
     background-attachment: fixed;
   }
 
-  /* 2. Soft Studio Light (Calibrated gentle slate-silver, NOT harsh white) */
+  /* 2. Mindora Nordic Light (Atmospheric misty alpine lake matching Mindora palette) */
   html[data-theme="light"], html:not(.dark):not([data-theme="warm"]) {
     color-scheme: light;
   }
   html[data-theme="light"] body, html:not(.dark):not([data-theme="warm"]) body {
-    background-color: #edf2f7;
-    color: #1a202c;
+    background-color: #dce7eb;
+    color: #1a262b;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 45%),
-      radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 45%),
-      radial-gradient(at 50% 100%, rgba(148, 163, 184, 0.08) 0px, transparent 50%),
-      radial-gradient(rgba(148, 163, 184, 0.22) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px;
+      radial-gradient(at 10% 8%, rgba(250, 239, 233, 0.95) 0px, transparent 48%),
+      radial-gradient(at 90% 12%, rgba(167, 199, 231, 0.65) 0px, transparent 45%),
+      radial-gradient(at 95% 32%, rgba(47, 62, 70, 0.22) 0px, transparent 40%),
+      radial-gradient(at 8% 50%, rgba(119, 146, 155, 0.35) 0px, transparent 45%),
+      radial-gradient(at 85% 68%, rgba(94, 139, 126, 0.25) 0px, transparent 50%),
+      radial-gradient(at 50% 98%, rgba(77, 110, 119, 0.40) 0px, transparent 65%),
+      linear-gradient(180deg, #f7ece6 0%, #e8eff3 20%, #ccdde5 48%, #93abb6 78%, #577887 100%);
+    background-size: 100% 100%;
     background-attachment: fixed;
   }
 
@@ -478,4 +481,20 @@ html[data-theme="warm"] .border-white\/\[0\.08\],
 html[data-theme="warm"] .border-white\/\[0\.1\] {
   border-color: #d6c6b2 !important;
 }
+
+/* Android App Viewport Utilities */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+}
+
+.android-squircle {
+  border-radius: 22px;
+}
+
+@media (max-width: 640px) {
+  .android-card-compact {
+    border-radius: 20px;
+  }
+}
+
 

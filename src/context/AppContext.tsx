@@ -295,11 +295,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const applyThemeToDOM = (t: AppTheme) => {
     if (typeof document === 'undefined') return;
-    document.documentElement.setAttribute('data-theme', t);
-    if (t === 'light' || t === 'warm') {
-      document.documentElement.classList.remove('dark');
+    document.documentElement.setAttribute('data-theme-setting', t);
+    
+    if (t === 'system') {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     } else {
-      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'light' || t === 'warm') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
     }
   };
 
@@ -310,7 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cycleTheme = () => {
-    const themeOrder: AppTheme[] = ['dark', 'light', 'midnight', 'warm'];
+    const themeOrder: AppTheme[] = ['dark', 'light', 'system'];
     const currentIndex = themeOrder.indexOf(theme);
     const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length];
     setTheme(nextTheme);
@@ -321,6 +333,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === 'ug' ? 'rtl' : 'ltr';
       applyThemeToDOM(theme);
+    }
+
+    if (theme === 'system' && typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => {
+        applyThemeToDOM('system');
+      };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [lang, theme]);
 
