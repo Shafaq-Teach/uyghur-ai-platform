@@ -7,6 +7,10 @@ import { RefreshCw, Download, CheckCircle2, XCircle } from 'lucide-react';
 export const CURRENT_APP_VERSION = '1.0.1';
 export const CURRENT_BUILD_NUMBER = 101;
 
+// Direct high-speed download link hosted on GitHub CDN (domain external to pages.dev so Android WebView intercepts and opens system browser)
+const APK_DOWNLOAD_URL = 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk';
+const APK_FALLBACK_URL = 'https://uyghur-ai-platform.pages.dev/uyghur-ai-v1.0.1.apk';
+
 interface VersionData {
   version: string;
   build: number;
@@ -135,6 +139,33 @@ export function AppUpdateManager() {
     return () => clearInterval(interval);
   }, [checkForUpdates]);
 
+  // Robust method to trigger APK download in any Android WebView / browser
+  const triggerApkDownload = useCallback(() => {
+    // 1. External navigation: In Capacitor WebView, navigating to an external domain
+    // (raw.githubusercontent.com) causes Capacitor to automatically pass it to Android's ACTION_VIEW Intent,
+    // which launches Chrome / System Browser and immediately downloads the APK!
+    try {
+      window.location.href = APK_DOWNLOAD_URL;
+    } catch (_) {}
+
+    // 2. window.open
+    try {
+      window.open(APK_DOWNLOAD_URL, '_blank');
+    } catch (_) {}
+
+    // 3. Android Intent URI targeting system browser
+    try {
+      if (/Android/i.test(navigator.userAgent)) {
+        const intentUrl = 'intent://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end';
+        const a = document.createElement('a');
+        a.href = intentUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (_) {}
+  }, []);
+
   // Exit app handler when user clicks "ياق" (No)
   const handleExitApp = () => {
     try {
@@ -164,32 +195,10 @@ export function AppUpdateManager() {
     setProgress(0);
     setIsCompleted(false);
 
-    const fullApkUrl = 'https://uyghur-ai-platform.pages.dev/uyghur-ai-v1.0.1.apk';
+    // Trigger download right away
+    triggerApkDownload();
 
-    // Trigger download through all available Android/Capacitor channels
-    try {
-      window.open(fullApkUrl, '_system');
-    } catch (_) {}
-
-    try {
-      const a = document.createElement('a');
-      a.href = fullApkUrl;
-      a.download = 'uyghur-ai-v1.0.1.apk';
-      a.target = '_system';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (_) {}
-
-    try {
-      if (/Android/i.test(navigator.userAgent)) {
-        const intentUrl = 'intent://uyghur-ai-platform.pages.dev/uyghur-ai-v1.0.1.apk#Intent;scheme=https;action=android.intent.action.VIEW;end;';
-        window.location.href = intentUrl;
-      }
-    } catch (_) {}
-
-    // Smooth 360-degree animation
+    // Smooth progress animation
     let cur = 0;
     const interval = setInterval(async () => {
       cur += Math.floor(Math.random() * 9) + 5;
@@ -198,6 +207,9 @@ export function AppUpdateManager() {
         clearInterval(interval);
         setProgress(100);
         setIsCompleted(true);
+
+        // Also trigger download again at 100%
+        triggerApkDownload();
 
         // Clear web caches
         try {
@@ -213,7 +225,7 @@ export function AppUpdateManager() {
           }
         } catch (_) {}
 
-        // If not in native APK wrapper, reload
+        // If in web browser, reload
         const isNative = Boolean(
           (window as any).Capacitor?.isNativePlatform?.() ||
           /wv|Android.*Version\/[0-9.]+|Capacitor/i.test(window.navigator.userAgent)
@@ -226,7 +238,7 @@ export function AppUpdateManager() {
       } else {
         setProgress(cur);
       }
-    }, 85);
+    }, 80);
   };
 
   // If no update needed, do not render modal
@@ -315,11 +327,11 @@ export function AppUpdateManager() {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Only the clean percentage number inside circle (360 text removed) */}
+              <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-3xl font-black font-mono tracking-tight bg-gradient-to-r from-cyan-300 via-indigo-200 to-purple-300 bg-clip-text text-transparent">
                   {progress}%
                 </span>
-                <span className="text-[10px] text-cyan-300 font-bold mt-0.5">360° يېڭىلاش</span>
               </div>
             </div>
           ) : (
@@ -378,15 +390,31 @@ export function AppUpdateManager() {
                   <p className="text-xs text-slate-300 leading-relaxed">
                     يېڭى 1.0.1 نۇسخا تېلېفونىڭىزغا چۈشۈرۈلدى. چۈشۈرۈش ئۇقتۇرۇشى ياكى ئاستىدىكى كۇنۇپكىنى بېسىپ قاچىلاشنى تاماملاڭ.
                   </p>
+                  {/* Both anchor and onClick handler to guarantee system browser/download triggers */}
                   <a
-                    href="https://uyghur-ai-platform.pages.dev/uyghur-ai-v1.0.1.apk"
-                    target="_system"
+                    href={APK_DOWNLOAD_URL}
+                    target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    onClick={(e) => {
+                      triggerApkDownload();
+                    }}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                     <span>APK نى قاچىلاش (1.0.1)</span>
                   </a>
+                  {/* Backup direct link in case phone browser asks */}
+                  <div className="pt-1 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                    <span>باشقا ئادرېس:</span>
+                    <a
+                      href={APK_FALLBACK_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 underline hover:text-cyan-300"
+                    >
+                      بىۋاسىتە زاپاس ئۇلىنىش
+                    </a>
+                  </div>
                 </>
               ) : (
                 <div className="py-2 flex items-center justify-center gap-2 text-xs text-cyan-300 font-bold">
