@@ -5,10 +5,10 @@ const config: CapacitorConfig = {
   appName: 'Uyghur AI',
   webDir: 'public',
   server: {
-    url: 'https://uyghur-ai-platform.pages.dev?app_version=1.0.2&build=102',
+    url: 'https://uyghur-ai-platform.pages.dev?app_version=1.0.3&build=103',
     cleartext: true
   },
-  appendUserAgent: 'UyghurAIApp/1.0.2',
+  appendUserAgent: 'UyghurAIApp/1.0.3',
   android: {
     allowMixedContent: true
   }

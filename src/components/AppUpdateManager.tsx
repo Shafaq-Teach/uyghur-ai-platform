@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { RefreshCw, CheckCircle2, XCircle, Download } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = '1.0.2';
-export const CURRENT_BUILD_NUMBER = 102;
+export const CURRENT_APP_VERSION = '1.0.3';
+export const CURRENT_BUILD_NUMBER = 103;
 
 interface VersionData {
   version: string;
@@ -171,11 +171,11 @@ export function AppUpdateManager() {
     setHasExited(true);
   };
 
-  const targetVer = remoteVersion?.version || '1.0.2';
-  const targetBuild = String(remoteVersion?.build || 102);
+  const targetVer = remoteVersion?.version || '1.0.3';
+  const targetBuild = String(remoteVersion?.build || 103);
   const APK_DOWNLOAD_URL = remoteVersion?.apk_url
     ? (remoteVersion.apk_url.startsWith('http') ? remoteVersion.apk_url : `https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public${remoteVersion.apk_url}`)
-    : 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.2.apk';
+    : 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.3.apk';
 
   // In-app download with 360 circular progress:
   // Strictly in-app, 0% to 100%, without jumping to any browser or external window
