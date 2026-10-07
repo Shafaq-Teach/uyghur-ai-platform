@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Sparkles, RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Sparkles, RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck, Download } from 'lucide-react';
 
 export const CURRENT_APP_VERSION = '1.0.1';
 export const CURRENT_BUILD_NUMBER = 101;
@@ -13,6 +13,8 @@ interface VersionData {
   min_supported_version?: string;
   force_update: boolean;
   release_date?: string;
+  apk_url?: string;
+  update_url?: string;
   title?: string;
   changelog?: string[];
 }
@@ -20,6 +22,10 @@ interface VersionData {
 export function AppUpdateManager() {
   const { lang, isRtl } = useApp();
   const [remoteVersion, setRemoteVersion] = useState<VersionData | null>(null);
+  const [installedVersion, setInstalledVersion] = useState<{ version: string; build: number }>({
+    version: CURRENT_APP_VERSION,
+    build: CURRENT_BUILD_NUMBER,
+  });
   const [needsUpdate, setNeedsUpdate] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 100
@@ -40,6 +46,54 @@ export function AppUpdateManager() {
     return 0;
   };
 
+  const getInstalledAppVersion = async (): Promise<{ version: string; build: number }> => {
+    if (typeof window === 'undefined') {
+      return { version: CURRENT_APP_VERSION, build: CURRENT_BUILD_NUMBER };
+    }
+
+    // 1. Priority 1: Check Capacitor global plugin bridge if available
+    try {
+      const capApp = (window as any).Capacitor?.Plugins?.App;
+      if (capApp) {
+        const info = await capApp.getInfo();
+        if (info?.version) {
+          return { version: info.version, build: parseInt(info.build, 10) || 100 };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Priority 2: URL search param ?app_version=...&build=...
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlVersion = params.get('app_version');
+      const urlBuild = params.get('build');
+      if (urlVersion) {
+        return { version: urlVersion, build: urlBuild ? parseInt(urlBuild, 10) : 101 };
+      }
+    } catch (_) {}
+
+    // 3. Priority 3: User-Agent e.g. UyghurAIApp/1.0.1
+    const uaMatch = window.navigator.userAgent.match(/UyghurAIApp\/([0-9.]+)/i);
+    if (uaMatch && uaMatch[1]) {
+      return { version: uaMatch[1], build: 101 };
+    }
+
+    // 4. Priority 4: Native Android Capacitor detection
+    const isNativeCapacitor = Boolean(
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      (window as any).Capacitor?.getPlatform?.() === 'android' ||
+      /wv|Android.*Version\/[0-9.]+|Capacitor/i.test(window.navigator.userAgent)
+    );
+
+    if (isNativeCapacitor) {
+      // The 1.0.0 APK installed on phones was built without app_version query or UA!
+      // Therefore, any native app without 1.0.1+ identifiers is the legacy 1.0.0 APK!
+      return { version: '1.0.0', build: 100 };
+    }
+
+    return { version: CURRENT_APP_VERSION, build: CURRENT_BUILD_NUMBER };
+  };
+
   const checkForUpdates = useCallback(async () => {
     try {
       const res = await fetch(`/api/version?t=${Date.now()}`, {
@@ -48,7 +102,10 @@ export function AppUpdateManager() {
       if (!res.ok) return;
       const data: VersionData = await res.json();
       
-      const isNewer = compareVersions(data.version, CURRENT_APP_VERSION) > 0 || (data.build && data.build > CURRENT_BUILD_NUMBER);
+      const current = await getInstalledAppVersion();
+      setInstalledVersion(current);
+
+      const isNewer = compareVersions(data.version, current.version) > 0 || (data.build && data.build > current.build);
       
       if (isNewer) {
         setRemoteVersion(data);
@@ -109,6 +166,25 @@ export function AppUpdateManager() {
     setIsUpdating(true);
     setProgress(0);
     setUpdatePhase('downloading');
+
+    // Trigger APK download for Android native app users
+    const apkUrl = remoteVersion?.apk_url || remoteVersion?.update_url || '/uyghur-ai-v1.0.1.apk';
+    const isNativeCapacitor = Boolean(
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      (window as any).Capacitor?.getPlatform?.() === 'android' ||
+      /wv|Android.*Version\/[0-9.]+|Capacitor/i.test(window.navigator.userAgent)
+    );
+
+    if (isNativeCapacitor) {
+      try {
+        const link = document.createElement('a');
+        link.href = apkUrl;
+        link.download = 'uyghur-ai-v1.0.1.apk';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (_) {}
+    }
 
     // Smooth animation step
     let currentProgress = 0;
@@ -183,7 +259,7 @@ export function AppUpdateManager() {
           <span>{lang === 'ug' ? 'نەشىر كونترول مەركىزى' : 'Version Control'}</span>
           <span className="text-white/40">|</span>
           <span className="font-mono text-[11px] text-cyan-300">
-            v{CURRENT_APP_VERSION} → {remoteVersion?.version ? `v${remoteVersion.version}` : 'New'}
+            v{installedVersion.version} → {remoteVersion?.version ? `v${remoteVersion.version}` : 'New'}
           </span>
         </div>
 
@@ -312,6 +388,16 @@ export function AppUpdateManager() {
               </>
             )}
           </button>
+
+          {/* Direct APK Download Link Button */}
+          <a
+            href={remoteVersion?.apk_url || remoteVersion?.update_url || '/uyghur-ai-v1.0.1.apk'}
+            download="uyghur-ai-v1.0.1.apk"
+            className="w-full mt-2.5 py-3 px-4 rounded-2xl bg-cyan-600/25 hover:bg-cyan-600/35 border border-cyan-400/40 text-cyan-200 text-xs font-black flex items-center justify-center gap-2 transition hover:scale-[1.01] active:scale-[0.99] shadow-md"
+          >
+            <Download className="w-4 h-4 text-cyan-300" />
+            <span>{lang === 'ug' ? '1.0.1 APK نى بىۋاسىتە چۈشۈرۈپ قاچىلاش (9.2MB)' : 'Download 1.0.1 APK Directly'}</span>
+          </a>
         </div>
 
         {/* Note */}
