@@ -145,7 +145,17 @@ export function PWAInstallPrompt() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+            <a
+              href="/uyghur-ai-v1.0.0.apk"
+              download="uyghur-ai-v1.0.0.apk"
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/40 border border-cyan-400/40 text-cyan-200 text-xs font-black shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ fontFamily: "'UKIJ Ekran', sans-serif" }}
+              title="Android APK ھۆججىتىنى بىۋاسىتە چۈشۈرۈش"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-300" />
+              <span>{lang === 'ug' ? 'APK چۈشۈرۈش (9MB)' : 'Download APK'}</span>
+            </a>
             <button
               type="button"
               onClick={handleInstallClick}
@@ -153,7 +163,7 @@ export function PWAInstallPrompt() {
               style={{ fontFamily: "'UKIJ Ekran', sans-serif" }}
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{lang === 'ug' ? 'ھازىر قاچىلاش' : 'Install Now'}</span>
+              <span>{lang === 'ug' ? 'تېلېفونغا قاچىلاش' : 'Install App'}</span>
             </button>
             <button
               type="button"

@@ -376,15 +376,25 @@ export default function SettingsPage() {
               سۇپىدا مەجبۇرىي ئاپتوماتىك يېڭىلاش ھالىتى تەستىقلانغان. يېڭى نەشر تارقىتىلغان ھامان 360 گىرادۇسلۇق ئىلگىرىلەش كۆرسەتكۈچى بىلەن ئەپ ئىچىدىن بىۋاسىتە يېڭىلىنىدۇ.
             </p>
           </div>
-          <a
-            href="/version.json"
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 px-4 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-xs font-semibold transition flex items-center gap-1.5"
-          >
-            <span>نەشىر ھۆججىتىنى كۆرۈش</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <div className="shrink-0 flex items-center gap-2">
+            <a
+              href="/uyghur-ai-v1.0.0.apk"
+              download="uyghur-ai-v1.0.0.apk"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
+            >
+              <span>APK چۈشۈرۈش (9.2MB)</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <a
+              href="/version.json"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-xs font-semibold transition flex items-center gap-1.5"
+            >
+              <span>نەشىر ھۆججىتى (JSON)</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </div>
 
