@@ -7,6 +7,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
   images: {
     domains: ['picsum.photos', 'images.unsplash.com', 'commondatastorage.googleapis.com'],
   },

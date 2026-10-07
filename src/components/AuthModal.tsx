@@ -68,8 +68,10 @@ export const AuthModal: React.FC<Props> = ({ isOpen, onClose, initialTab = 'sign
         setLoading(false);
       } else {
         setLoading(false);
-        setSuccessMsg(res.message || 'تىزىملىتىش مۇۋەپپەقىيەتلىك بولدى!');
-        if (!res.message) {
+        if (res.message) {
+          setSuccessMsg(res.message);
+          setTab('signin');
+        } else {
           onClose();
         }
       }

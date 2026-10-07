@@ -136,13 +136,13 @@ export async function POST(req: NextRequest) {
       if (!userId || !role) {
         return NextResponse.json({ error: 'userId ۋە role تەلەپ قىلىنىدۇ' }, { status: 400 });
       }
-      const { error: roleErr } = await supabase
-        .from('profiles')
-        .update({ role, updated_at: new Date().toISOString() })
-        .eq('id', userId);
+      const { data: roleData, error: roleErr } = await supabase.rpc('admin_update_user_role', {
+        target_user_id: userId,
+        new_role: role,
+      });
 
-      if (roleErr) {
-        return NextResponse.json({ error: roleErr.message }, { status: 400 });
+      if (roleErr || (roleData && roleData.success === false)) {
+        return NextResponse.json({ error: roleErr?.message || roleData?.error || 'ھوقۇق ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
       }
       return NextResponse.json({ success: true, message: 'رول مۇۋەپپەقىيەتلىك ئۆزگەرتىلدى' });
     }
@@ -159,34 +159,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'مۇسبەت سان كىرگۈزۈڭ' }, { status: 400 });
       }
 
-      // Fetch current profile coins
-      const { data: prof, error: getErr } = await supabase
-        .from('profiles')
-        .select('id, coins')
-        .eq('id', userId)
-        .single();
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_adjust_user_coins', {
+        target_user_id: userId,
+        coin_amount: numAmount,
+        adjust_mode: mode,
+      });
 
-      if (getErr || !prof) {
-        return NextResponse.json({ error: 'ئىشلەتكۈچى تېپىلمىدى' }, { status: 404 });
+      if (rpcErr || !rpcRes || rpcRes.success === false) {
+        return NextResponse.json({ error: rpcErr?.message || rpcRes?.error || 'تەڭگە تەڭشەش مەغلۇپ بولدى' }, { status: 400 });
       }
 
-      const currentCoins = typeof prof.coins === 'number' ? prof.coins : 100;
-      const targetCoins = mode === 'add'
-        ? currentCoins + numAmount
-        : Math.max(0, currentCoins - numAmount);
-
-      const { error: updErr } = await supabase
-        .from('profiles')
-        .update({ coins: targetCoins, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-
-      if (updErr) {
-        return NextResponse.json({ error: updErr.message }, { status: 400 });
-      }
+      const finalCoins = typeof rpcRes.coins === 'number' ? rpcRes.coins : 100;
 
       return NextResponse.json({
         success: true,
-        coins: targetCoins,
+        coins: finalCoins,
         message: mode === 'add' ? `${numAmount} تەڭگە قوشۇلدى` : `${numAmount} تەڭگە ئېلىۋېتىلدى`,
       });
     }

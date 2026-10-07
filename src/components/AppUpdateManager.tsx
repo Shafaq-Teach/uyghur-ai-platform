@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { RefreshCw, CheckCircle2, XCircle, Download } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = '1.0.1';
-export const CURRENT_BUILD_NUMBER = 101;
+export const CURRENT_APP_VERSION = '1.0.2';
+export const CURRENT_BUILD_NUMBER = 102;
 
 interface VersionData {
   version: string;
@@ -171,7 +171,11 @@ export function AppUpdateManager() {
     setHasExited(true);
   };
 
-  const APK_DOWNLOAD_URL = 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk';
+  const targetVer = remoteVersion?.version || '1.0.2';
+  const targetBuild = String(remoteVersion?.build || 102);
+  const APK_DOWNLOAD_URL = remoteVersion?.apk_url
+    ? (remoteVersion.apk_url.startsWith('http') ? remoteVersion.apk_url : `https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public${remoteVersion.apk_url}`)
+    : 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.2.apk';
 
   // In-app download with 360 circular progress:
   // Strictly in-app, 0% to 100%, without jumping to any browser or external window
@@ -202,8 +206,8 @@ export function AppUpdateManager() {
   // Called ONLY when the user explicitly clicks the «قاچىلاش» (Install) button
   const handleInstall = () => {
     try {
-      localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
-      localStorage.setItem('uyghur_ai_installed_build', '101');
+      localStorage.setItem('uyghur_ai_installed_version', targetVer);
+      localStorage.setItem('uyghur_ai_installed_build', targetBuild);
     } catch (_) {}
 
     // 1. If AndroidBridge is available, use native system installer directly

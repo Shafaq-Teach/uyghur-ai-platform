@@ -518,6 +518,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const translateAuthError = (err: string): string => {
+    if (!err) return 'خاتالىق كۆرۈلدى';
+    const lower = err.toLowerCase();
+    if (lower.includes('invalid login credentials') || lower.includes('invalid_grant')) {
+      return 'ئېلخەت ئادرېسى ياكى پارول خاتا كىرگۈزۈلدى. تەكشۈرۈپ قايتا كىرىڭ.';
+    }
+    if (lower.includes('user already registered') || lower.includes('already exists')) {
+      return 'بۇ ئېلخەت بىلەن ئاللىقاچان ھېسابات ئېچىلغان. بىۋاسىتە «كىرىش» نى بېسىڭ.';
+    }
+    if (lower.includes('password') && (lower.includes('least 6') || lower.includes('short'))) {
+      return 'پارول كەم دېگەندە 6 خانىلىق بولۇشى شەرت.';
+    }
+    if (lower.includes('invalid format') || lower.includes('validate email') || lower.includes('valid email')) {
+      return 'ئېلخەت فورماتى توغرا ئەمەس (مەسىلەن: name@gmail.com).';
+    }
+    if (lower.includes('email rate limit') || lower.includes('too many requests')) {
+      return 'بەك كۆپ سىناپ باقتىڭىز، بىر ئازدىن كېيىن قايتا كىرىڭ.';
+    }
+    return err;
+  };
+
   const signInWithGoogle = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -526,42 +547,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           redirectTo: typeof window !== 'undefined' ? `${window.location.origin}` : undefined,
         },
       });
-      if (error) return { error: error.message };
+      if (error) return { error: translateAuthError(error.message) };
       return {};
     } catch (e: any) {
-      return { error: e.message || 'Google login failed' };
+      return { error: translateAuthError(e.message || 'Google login failed') };
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message };
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPassword,
+      });
+
+      if (error) return { error: translateAuthError(error.message) };
       return {};
     } catch (e: any) {
-      return { error: e.message || 'Login failed' };
+      return { error: translateAuthError(e.message || 'Login failed') };
     }
   };
 
   const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
       const { error, data } = await supabase.auth.signUp({
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
         options: {
-          data: { full_name: fullName || email.split('@')[0] },
+          data: { full_name: fullName?.trim() || cleanEmail.split('@')[0] },
         },
       });
-      if (error) return { error: error.message };
+
+      if (error) return { error: translateAuthError(error.message) };
+
+      // If user already existed, Supabase returns empty identities without error
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return { error: 'بۇ ئېلخەت ئاللىقاچان تىزىملاتقان. «كىرىش» سەھىپىسىنى تاللاپ پارولىڭىزنى كىرگۈزۈڭ.' };
+      }
+
+      // Automatically sign in immediately with the new account
       if (!data?.session) {
-        const loginRes = await supabase.auth.signInWithPassword({ email, password });
+        const loginRes = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPassword,
+        });
         if (loginRes.error) {
-          return { message: 'تىزىملىتىش تاماملاندى، ئەمدى «كىرىش» نى بېسىپ كىرىڭ.' };
+          // If requires manual login
+          return { message: 'تىزىملىتىش تاماملاندى، «كىرىش» نى بېسىپ سىستېمىغا كىرىڭ.' };
         }
       }
+
       return {};
     } catch (e: any) {
-      return { error: e.message || 'Signup failed' };
+      return { error: translateAuthError(e.message || 'Signup failed') };
     }
   };
 
