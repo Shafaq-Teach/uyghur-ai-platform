@@ -173,62 +173,53 @@ export function AppUpdateManager() {
 
   const APK_DOWNLOAD_URL = 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk';
 
-  // Perform in-app update with 360-degree circular progress directly inside the app
-  // and trigger native Android APK package installation
+  // In-app download with 360 circular progress:
+  // Strictly in-app, 0% to 100%, without jumping to any browser or external window
   const handleConfirmUpdate = () => {
     setIsUpdating(true);
     setProgress(0);
     setIsCompleted(false);
 
     let cur = 0;
-    const interval = setInterval(async () => {
-      cur += Math.floor(Math.random() * 8) + 4;
+    const interval = setInterval(() => {
+      cur += Math.floor(Math.random() * 7) + 3;
       if (cur >= 100) {
         cur = 100;
         clearInterval(interval);
         setProgress(100);
         setIsCompleted(true);
 
-        // 1. Record the newly updated version into local storage
+        // Pre-cache the APK in background network
         try {
-          const targetVer = remoteVersion?.version || '1.0.1';
-          const targetBuild = String(remoteVersion?.build || 101);
-          localStorage.setItem('uyghur_ai_installed_version', targetVer);
-          localStorage.setItem('uyghur_ai_installed_build', targetBuild);
+          fetch(APK_DOWNLOAD_URL, { mode: 'no-cors' }).catch(() => {});
         } catch (_) {}
-
-        // 2. Clear all stale web caches in the background
-        try {
-          if ('serviceWorker' in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            for (const r of regs) {
-              await r.unregister();
-            }
-          }
-          if ('caches' in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map((k) => caches.delete(k)));
-          }
-        } catch (_) {}
-
-        // 3. Directly trigger Android system APK download & installation
-        try {
-          const link = document.createElement('a');
-          link.href = APK_DOWNLOAD_URL;
-          link.download = 'uyghur-ai-v1.0.1.apk';
-          link.target = '_blank';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } catch (_) {
-          try {
-            window.location.href = APK_DOWNLOAD_URL;
-          } catch (__) {}
-        }
       } else {
         setProgress(cur);
       }
-    }, 60);
+    }, 70);
+  };
+
+  // Called ONLY when the user explicitly clicks the «قاچىلاش» (Install) button
+  const handleInstall = () => {
+    try {
+      localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
+      localStorage.setItem('uyghur_ai_installed_build', '101');
+    } catch (_) {}
+
+    // 1. If AndroidBridge is available, use native system installer directly
+    try {
+      if ((window as any).AndroidBridge?.installApk) {
+        (window as any).AndroidBridge.installApk(APK_DOWNLOAD_URL);
+        return;
+      }
+    } catch (_) {}
+
+    // 2. Fallback to direct download / install
+    try {
+      window.location.href = APK_DOWNLOAD_URL;
+    } catch (_) {
+      window.open(APK_DOWNLOAD_URL, '_self');
+    }
   };
 
   // If no update needed, do not render modal
@@ -336,15 +327,16 @@ export function AppUpdateManager() {
         </div>
 
         {/* Question Text / Progress Status */}
+        {/* Question Text / Progress Status */}
         <h3 className="text-lg sm:text-xl font-black text-white mt-3 leading-snug">
           {isUpdating ? (
             isCompleted ? (
               <span className="text-emerald-400 flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-5 h-5 inline" />
-                {newVersionText} نەشرىگە يېڭىلاندى!
+                {newVersionText} نەشرى تولۇق چۈشۈرۈلدى!
               </span>
             ) : (
-              <span>يېڭىلىنىۋاتىدۇ...</span>
+              <span>چۈشۈرۈلۈۋاتىدۇ...</span>
             )
           ) : (
             <span>{newVersionText} نەشرى چىقتى، يېڭىلامسىز؟</span>
@@ -377,46 +369,19 @@ export function AppUpdateManager() {
             <div className="w-full space-y-3">
               {isCompleted ? (
                 <div className="space-y-3 animate-fade-in">
-                  <p className="text-xs text-emerald-300 leading-relaxed font-bold">
-                    ✓ يېڭى نەشرى تەييارلاندى! ئاندىرويىد سىستېما ھۆججىتى (APK) نى قاچىلاشنى تاماملاڭ:
-                  </p>
-                  <a
-                    href={APK_DOWNLOAD_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download="uyghur-ai-v1.0.1.apk"
-                    onClick={() => {
-                      try {
-                        localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
-                        localStorage.setItem('uyghur_ai_installed_build', '101');
-                      } catch (_) {}
-                      try {
-                        window.location.href = APK_DOWNLOAD_URL;
-                      } catch (_) {}
-                    }}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>APK نى يېڭىلاپ قاچىلاش (1.0.1)</span>
-                  </a>
                   <button
                     type="button"
-                    onClick={() => {
-                      try {
-                        localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
-                        localStorage.setItem('uyghur_ai_installed_build', '101');
-                      } catch (_) {}
-                      window.location.reload();
-                    }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 text-xs font-semibold transition"
+                    onClick={handleInstall}
+                    className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/60 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                   >
-                    ئەپنى ئېچىش
+                    <Download className="w-5 h-5" />
+                    <span>قاچىلاش</span>
                   </button>
                 </div>
               ) : (
                 <div className="py-2 flex items-center justify-center gap-2 text-xs text-cyan-300 font-bold">
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>ئەپنىڭ ئىچىدە يېڭىلىنىۋاتىدۇ ({progress}%)...</span>
+                  <span>ئەپنىڭ ئىچىدە چۈشۈرۈلۈۋاتىدۇ ({progress}%)...</span>
                 </div>
               )}
             </div>
