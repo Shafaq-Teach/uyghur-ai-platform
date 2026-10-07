@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { AppUpdateManager } from '@/components/AppUpdateManager';
 
 export const metadata: Metadata = {
   title: 'سۈنئىي ئىدراك سۇپىسى — Uyghur AI Platform',
@@ -78,6 +79,7 @@ export default function RootLayout({
         <AppProvider>
           <Header />
           <PWAInstallPrompt />
+          <AppUpdateManager />
           <main className="flex-1 w-full max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 pb-20 md:pb-6 relative z-10 min-w-0 overflow-x-hidden">
             {children}
           </main>

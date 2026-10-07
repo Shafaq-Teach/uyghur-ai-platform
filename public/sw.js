@@ -1,8 +1,10 @@
 // Uyghur AI Platform PWA Service Worker
-const CACHE_NAME = 'uyghur-ai-pwa-v1';
+const APP_VERSION = '1.0.0';
+const CACHE_NAME = `uyghur-ai-pwa-v${APP_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
+  '/version.json',
   '/icon-192.png',
   '/icon-512.png',
   '/logo_icon.png',
@@ -17,6 +19,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
+  // Allow immediate activation when requested
   self.skipWaiting();
 });
 
@@ -35,9 +38,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Listen for messages from client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
-  // Pass-through for non-GET or API calls
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  // Always fetch version.json and API routes directly from network
+  if (
+    event.request.method !== 'GET' || 
+    event.request.url.includes('/api/') || 
+    event.request.url.includes('/version.json')
+  ) {
     return;
   }
 
