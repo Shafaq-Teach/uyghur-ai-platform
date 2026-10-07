@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { RefreshCw, CheckCircle2, XCircle, Download } from 'lucide-react';
+import { RefreshCw, CheckCircle2, XCircle, Download, AlertTriangle, ShieldCheck, ExternalLink } from 'lucide-react';
 
 export const CURRENT_APP_VERSION = '1.0.3';
 export const CURRENT_BUILD_NUMBER = 103;
@@ -20,17 +20,21 @@ interface VersionData {
 }
 
 export function AppUpdateManager() {
-  const { lang, isRtl } = useApp();
+  const { isRtl } = useApp();
   const [remoteVersion, setRemoteVersion] = useState<VersionData | null>(null);
   const [installedVersion, setInstalledVersion] = useState<{ version: string; build: number }>({
-    version: CURRENT_APP_VERSION,
-    build: CURRENT_BUILD_NUMBER,
+    version: '1.0.2',
+    build: 102,
   });
   const [needsUpdate, setNeedsUpdate] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [downloadInfo, setDownloadInfo] = useState<string>('0.0 MB / 11.1 MB');
   const [isCompleted, setIsCompleted] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [needsPermission, setNeedsPermission] = useState(false);
   const [hasExited, setHasExited] = useState(false);
+  const [downloadedBlobUrl, setDownloadedBlobUrl] = useState<string | null>(null);
   const checkedRef = useRef(false);
 
   // Compare semantic versions (returns: 1 if vA > vB, -1 if vA < vB, 0 if equal)
@@ -52,19 +56,19 @@ export function AppUpdateManager() {
       return { version: CURRENT_APP_VERSION, build: CURRENT_BUILD_NUMBER };
     }
 
-    // 0. Priority 0: In-app updated version stored in localStorage
+    // 1. Native AndroidBridge inspection (highest precision)
     try {
-      const savedVersion = localStorage.getItem('uyghur_ai_installed_version');
-      const savedBuild = localStorage.getItem('uyghur_ai_installed_build');
-      if (savedVersion) {
-        return {
-          version: savedVersion,
-          build: savedBuild ? parseInt(savedBuild, 10) : 101,
-        };
+      const bridge = (window as any).AndroidBridge;
+      if (bridge?.getNativeVersionCode && bridge?.getNativeVersionName) {
+        const build = bridge.getNativeVersionCode();
+        const ver = bridge.getNativeVersionName();
+        if (build > 0) {
+          return { version: ver, build };
+        }
       }
     } catch (_) {}
 
-    // 1. Check Capacitor global plugin bridge if available
+    // 2. Capacitor global plugin bridge if available
     try {
       const capApp = (window as any).Capacitor?.Plugins?.App;
       if (capApp) {
@@ -75,68 +79,99 @@ export function AppUpdateManager() {
       }
     } catch (_) {}
 
-    // 2. URL search param ?app_version=...&build=...
+    // 3. URL search param ?app_version=...&build=...
     try {
       const params = new URLSearchParams(window.location.search);
-      const urlVersion = params.get('app_version');
-      const urlBuild = params.get('build');
-      if (urlVersion) {
-        return { version: urlVersion, build: urlBuild ? parseInt(urlBuild, 10) : 101 };
+      const paramVer = params.get('app_version');
+      const paramBuild = params.get('build');
+      if (paramVer) {
+        return {
+          version: paramVer,
+          build: paramBuild ? parseInt(paramBuild, 10) : 100,
+        };
       }
     } catch (_) {}
 
-    // 3. User-Agent e.g. UyghurAIApp/1.0.1
-    const uaMatch = window.navigator.userAgent.match(/UyghurAIApp\/([0-9.]+)/i);
-    if (uaMatch && uaMatch[1]) {
-      return { version: uaMatch[1], build: 101 };
-    }
-
-    // 4. Native Android Capacitor detection
-    const isNativeCapacitor = Boolean(
-      (window as any).Capacitor?.isNativePlatform?.() ||
-      (window as any).Capacitor?.getPlatform?.() === 'android' ||
-      /wv|Android.*Version\/[0-9.]+|Capacitor/i.test(window.navigator.userAgent)
-    );
-
-    if (isNativeCapacitor) {
-      // If legacy 1.0.0 without in-app update saved yet
-      return { version: '1.0.0', build: 100 };
-    }
+    // 4. User Agent inspection (e.g. UyghurAIApp/1.0.2)
+    try {
+      const ua = navigator.userAgent || '';
+      const match = ua.match(/UyghurAIApp\/([0-9.]+)/i);
+      if (match && match[1]) {
+        const parts = match[1].split('.');
+        const b = (parseInt(parts[0] || '1', 10) * 100) + (parseInt(parts[1] || '0', 10) * 10) + parseInt(parts[2] || '0', 10);
+        return { version: match[1], build: b };
+      }
+    } catch (_) {}
 
     return { version: CURRENT_APP_VERSION, build: CURRENT_BUILD_NUMBER };
   };
 
+  // Register native Android download bridge callbacks
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    (window as any).onNativeDownloadProgress = (pct: number, mbText: string) => {
+      setProgress(pct);
+      setDownloadInfo(mbText);
+      setIsUpdating(true);
+    };
+
+    (window as any).onNativeDownloadComplete = () => {
+      setProgress(100);
+      setDownloadInfo('11.1 MB / 11.1 MB (100%)');
+      setIsCompleted(true);
+      setIsUpdating(false);
+    };
+
+    (window as any).onNativeDownloadError = (err: string) => {
+      setDownloadError(err);
+      setIsUpdating(false);
+    };
+
+    (window as any).onNativeRequirePermission = () => {
+      setNeedsPermission(true);
+    };
+
+    return () => {
+      delete (window as any).onNativeDownloadProgress;
+      delete (window as any).onNativeDownloadComplete;
+      delete (window as any).onNativeDownloadError;
+      delete (window as any).onNativeRequirePermission;
+    };
+  }, []);
+
   const checkForUpdates = useCallback(async () => {
     try {
-      const res = await fetch(`/api/version?t=${Date.now()}`, {
-        cache: 'no-store',
-      });
-      if (!res.ok) return;
-      const data: VersionData = await res.json();
-      
       const current = await getInstalledAppVersion();
       setInstalledVersion(current);
 
-      const isNewer = compareVersions(data.version, current.version) > 0 || (data.build && data.build > current.build);
-      
-      if (isNewer) {
-        setRemoteVersion(data);
+      const res = await fetch(`/api/version?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+      });
+
+      if (!res.ok) return;
+
+      const data: VersionData = await res.json();
+      setRemoteVersion(data);
+
+      const hasNewVersion =
+        data.build > current.build || compareVersions(data.version, current.version) > 0;
+
+      if (hasNewVersion) {
         setNeedsUpdate(true);
       } else {
         setNeedsUpdate(false);
       }
     } catch (err) {
-      console.warn('Update check failed:', err);
+      console.warn('Update check error:', err);
     }
   }, []);
 
   useEffect(() => {
     if (!checkedRef.current) {
       checkedRef.current = true;
-      const timer = setTimeout(() => {
-        checkForUpdates();
-      }, 800);
-      return () => clearTimeout(timer);
+      checkForUpdates();
     }
   }, [checkForUpdates]);
 
@@ -148,7 +183,6 @@ export function AppUpdateManager() {
     return () => clearInterval(interval);
   }, [checkForUpdates]);
 
-  // Exit app handler when user clicks "ياق" (No)
   const handleExitApp = () => {
     try {
       if ((window as any).Capacitor?.Plugins?.App?.exitApp) {
@@ -164,61 +198,112 @@ export function AppUpdateManager() {
       }
     } catch (_) {}
 
-    try {
-      window.close();
-    } catch (_) {}
-
     setHasExited(true);
   };
 
   const targetVer = remoteVersion?.version || '1.0.3';
-  const targetBuild = String(remoteVersion?.build || 103);
   const APK_DOWNLOAD_URL = remoteVersion?.apk_url
-    ? (remoteVersion.apk_url.startsWith('http') ? remoteVersion.apk_url : `https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public${remoteVersion.apk_url}`)
+    ? (remoteVersion.apk_url.startsWith('http')
+        ? remoteVersion.apk_url
+        : `https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public${remoteVersion.apk_url}`)
     : 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.3.apk';
 
-  // In-app download with 360 circular progress:
-  // Strictly in-app, 0% to 100%, without jumping to any browser or external window
-  const handleConfirmUpdate = () => {
+  // Real HTTP streaming download: 0% to 100% byte-by-byte
+  const handleConfirmUpdate = async () => {
     setIsUpdating(true);
     setProgress(0);
+    setDownloadInfo('0.0 MB / 11.1 MB (0%)');
     setIsCompleted(false);
+    setDownloadError(null);
 
-    let cur = 0;
-    const interval = setInterval(() => {
-      cur += Math.floor(Math.random() * 7) + 3;
-      if (cur >= 100) {
-        cur = 100;
-        clearInterval(interval);
-        setProgress(100);
-        setIsCompleted(true);
-
-        // Pre-cache the APK in background network
-        try {
-          fetch(APK_DOWNLOAD_URL, { mode: 'no-cors' }).catch(() => {});
-        } catch (_) {}
-      } else {
-        setProgress(cur);
-      }
-    }, 70);
-  };
-
-  // Called ONLY when the user explicitly clicks the «قاچىلاش» (Install) button
-  const handleInstall = () => {
+    // If native downloader is available, use it directly
     try {
-      localStorage.setItem('uyghur_ai_installed_version', targetVer);
-      localStorage.setItem('uyghur_ai_installed_build', targetBuild);
-    } catch (_) {}
-
-    // 1. If AndroidBridge is available, use native system installer directly
-    try {
-      if ((window as any).AndroidBridge?.installApk) {
-        (window as any).AndroidBridge.installApk(APK_DOWNLOAD_URL);
+      const bridge = (window as any).AndroidBridge;
+      if (bridge?.startNativeDownload) {
+        bridge.startNativeDownload(APK_DOWNLOAD_URL);
         return;
       }
     } catch (_) {}
 
-    // 2. Fallback to direct download / install
+    // Real JavaScript streaming download through Fetch & ReadableStream
+    try {
+      const response = await fetch(APK_DOWNLOAD_URL);
+      if (!response.ok) {
+        throw new Error(`چۈشۈرۈش مەغلۇپ بولدى (HTTP ${response.status})`);
+      }
+
+      const contentLengthHeader = response.headers.get('content-length');
+      const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 11611445;
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error('چۈشۈرۈش ئېقىمى قوزغالمىدى');
+      }
+
+      let receivedBytes = 0;
+      const chunks: Uint8Array[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        if (value) {
+          chunks.push(value);
+          receivedBytes += value.length;
+
+          const pct = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+          const readMb = (receivedBytes / (1024 * 1024)).toFixed(1);
+          const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+
+          setProgress(pct);
+          setDownloadInfo(`${readMb} MB / ${totalMb} MB (${pct}%)`);
+        }
+      }
+
+      const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+      const blobUrl = URL.createObjectURL(blob);
+      setDownloadedBlobUrl(blobUrl);
+
+      setProgress(100);
+      setDownloadInfo('11.1 MB / 11.1 MB (100%)');
+      setIsCompleted(true);
+      setIsUpdating(false);
+
+    } catch (err: any) {
+      console.error('Download error:', err);
+      setDownloadError(err?.message || 'تور ئۇلىنىشى ئۈزۈلۈپ قالدى، قايتا سىناڭ');
+      setIsUpdating(false);
+    }
+  };
+
+  // Called when user clicks «قاچىلاش»
+  const handleInstall = () => {
+    // 1. Try native install of pre-downloaded APK
+    try {
+      const bridge = (window as any).AndroidBridge;
+      if (bridge?.installDownloadedApk) {
+        bridge.installDownloadedApk();
+        return;
+      }
+      if (bridge?.installApk) {
+        bridge.installApk(APK_DOWNLOAD_URL);
+        return;
+      }
+    } catch (_) {}
+
+    // 2. Trigger downloaded Blob file
+    if (downloadedBlobUrl) {
+      try {
+        const a = document.createElement('a');
+        a.href = downloadedBlobUrl;
+        a.download = `uyghur-ai-v${targetVer}.apk`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (_) {}
+    }
+
+    // 3. Fallback direct download
     try {
       window.location.href = APK_DOWNLOAD_URL;
     } catch (_) {
@@ -226,12 +311,19 @@ export function AppUpdateManager() {
     }
   };
 
-  // If no update needed, do not render modal
+  const handleOpenPermissionSettings = () => {
+    try {
+      const bridge = (window as any).AndroidBridge;
+      if (bridge?.openInstallPermissionSettings) {
+        bridge.openInstallPermissionSettings();
+      }
+    } catch (_) {}
+  };
+
   if (!needsUpdate) {
     return null;
   }
 
-  // If user clicked "ياق" and app couldn't self-kill in standard browser
   if (hasExited) {
     return (
       <div 
@@ -243,9 +335,9 @@ export function AppUpdateManager() {
           <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-4 text-red-400">
             <XCircle className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">مەجبۇرىي يېڭىلاش بولغانلىقى ئۈچۈن ئەپ تاقالدى</h3>
+          <h3 className="text-lg font-bold text-white mb-2">ئەپ تاقالدى</h3>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            1.0.1 نەشرىگە يېڭىلاش مەجبۇرىي بولغاچقا، ئەپنى داۋاملىق ئىشلەتكىلى بولمايدۇ. قايتا ئېچىپ يېڭىلاڭ.
+            {targetVer} نەشرىگە يېڭىلاش زۆرۈر بولغاچقا، ئەپنى داۋاملىق ئىشلەتكىلى بولمايدۇ.
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -258,11 +350,10 @@ export function AppUpdateManager() {
     );
   }
 
-  // 360 Degree SVG Circular Progress Math
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
-  const newVersionText = remoteVersion?.version || '1.0.1';
+  const newVersionText = remoteVersion?.version || targetVer;
 
   return (
     <div 
@@ -270,18 +361,15 @@ export function AppUpdateManager() {
       dir={isRtl ? 'rtl' : 'ltr'}
       style={{ fontFamily: "'UKIJ Ekran', 'ALKatip Basma', sans-serif" }}
     >
-      {/* Background Ambient Glow */}
       <div className="absolute w-72 h-72 rounded-full bg-gradient-to-tr from-cyan-500/20 via-indigo-600/25 to-purple-600/20 blur-3xl pointer-events-none" />
 
-      {/* Main Clean Modal Container */}
       <div className="relative w-full max-w-sm rounded-[32px] bg-[#0c0e17] border border-white/10 p-6 sm:p-8 shadow-2xl shadow-black/80 text-white text-center flex flex-col items-center">
         
-        {/* App Logo or 360 Progress Ring */}
+        {/* Progress Ring / Logo */}
         <div className="relative my-4 flex items-center justify-center">
-          {isUpdating ? (
+          {isUpdating || isCompleted ? (
             <div className="relative w-36 h-36 flex items-center justify-center">
               <svg className="w-36 h-36 -rotate-90 transform" viewBox="0 0 132 132">
-                {/* Background Ring */}
                 <circle
                   cx="66"
                   cy="66"
@@ -291,7 +379,6 @@ export function AppUpdateManager() {
                   className="text-white/[0.08]"
                   fill="transparent"
                 />
-                {/* Active 360 Ring */}
                 <circle
                   cx="66"
                   cy="66"
@@ -312,10 +399,12 @@ export function AppUpdateManager() {
                   </linearGradient>
                 </defs>
               </svg>
-              {/* Only the clean percentage number inside circle (no 360 text) */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-black font-mono tracking-tight bg-gradient-to-r from-cyan-300 via-indigo-200 to-purple-300 bg-clip-text text-transparent">
                   {progress}%
+                </span>
+                <span className="text-[11px] font-mono text-cyan-300/80 mt-1">
+                  {downloadInfo.split(' ')[0]} {downloadInfo.split(' ')[1]}
                 </span>
               </div>
             </div>
@@ -330,28 +419,59 @@ export function AppUpdateManager() {
           )}
         </div>
 
-        {/* Question Text / Progress Status */}
-        {/* Question Text / Progress Status */}
+        {/* Title */}
         <h3 className="text-lg sm:text-xl font-black text-white mt-3 leading-snug">
           {isUpdating ? (
-            isCompleted ? (
-              <span className="text-emerald-400 flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-5 h-5 inline" />
-                {newVersionText} نەشرى تولۇق چۈشۈرۈلدى!
-              </span>
-            ) : (
-              <span>چۈشۈرۈلۈۋاتىدۇ...</span>
-            )
+            <span>ھەقىقىي چۈشۈرۈلۈۋاتىدۇ...</span>
+          ) : isCompleted ? (
+            <span className="text-emerald-400 flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-5 h-5 inline" />
+              {newVersionText} نەشرى تولۇق چۈشۈرۈلدى!
+            </span>
           ) : (
             <span>{newVersionText} نەشرى چىقتى، يېڭىلامسىز؟</span>
           )}
         </h3>
 
-        {/* Action Controls */}
+        {/* Detailed Byte Download Info */}
+        {(isUpdating || isCompleted) && (
+          <div className="mt-2 text-xs font-mono text-slate-300 bg-white/[0.04] border border-white/10 px-3 py-1.5 rounded-xl">
+            {downloadInfo}
+          </div>
+        )}
+
+        {/* Error Display */}
+        {downloadError && (
+          <div className="mt-3 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 text-start">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{downloadError}</span>
+          </div>
+        )}
+
+        {/* Permission Notice */}
+        {needsPermission && (
+          <div className="mt-3 p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs text-start space-y-2">
+            <div className="flex items-center gap-2 font-bold">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>نامەلۇم مەنبەدىن قاچىلاشقا رۇخسەت بېرىڭ</span>
+            </div>
+            <p className="text-[11px] text-amber-200/80 leading-relaxed">
+              سىستېما تەڭشىكىدە ئەپ قاچىلاشقا بىر قېتىم رۇخسەت بەرسىڭىز، سىستېما بىۋاسىتە قاچىلاپ بېرىدۇ.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenPermissionSettings}
+              className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-bold border border-amber-500/40 transition"
+            >
+              تەڭشەكنى ئېچىش
+            </button>
+          </div>
+        )}
+
+        {/* Actions */}
         <div className="w-full mt-6">
-          {!isUpdating ? (
+          {!isUpdating && !isCompleted ? (
             <div className="grid grid-cols-2 gap-3 w-full">
-              {/* ھەئە Button */}
               <button
                 type="button"
                 onClick={handleConfirmUpdate}
@@ -359,8 +479,6 @@ export function AppUpdateManager() {
               >
                 ھەئە
               </button>
-
-              {/* ياق Button */}
               <button
                 type="button"
                 onClick={handleExitApp}
@@ -369,25 +487,31 @@ export function AppUpdateManager() {
                 ياق
               </button>
             </div>
+          ) : isCompleted ? (
+            <div className="space-y-3 animate-fade-in w-full">
+              <button
+                type="button"
+                onClick={handleInstall}
+                className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/60 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Download className="w-5 h-5" />
+                <span>قاچىلاش</span>
+              </button>
+
+              <a
+                href={APK_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>ئەگەر قاچىلاش چىقمىسا بۇ يەرنى بېسىڭ</span>
+              </a>
+            </div>
           ) : (
-            <div className="w-full space-y-3">
-              {isCompleted ? (
-                <div className="space-y-3 animate-fade-in">
-                  <button
-                    type="button"
-                    onClick={handleInstall}
-                    className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/60 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-                  >
-                    <Download className="w-5 h-5" />
-                    <span>قاچىلاش</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="py-2 flex items-center justify-center gap-2 text-xs text-cyan-300 font-bold">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>ئەپنىڭ ئىچىدە چۈشۈرۈلۈۋاتىدۇ ({progress}%)...</span>
-                </div>
-              )}
+            <div className="py-2 flex items-center justify-center gap-2 text-xs text-cyan-300 font-bold">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>ئەپ ئىچىدە چۈشۈرۈلۈۋاتىدۇ ({progress}%)...</span>
             </div>
           )}
         </div>
