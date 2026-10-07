@@ -4,10 +4,17 @@ import { AppProvider } from '@/context/AppContext';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 export const metadata: Metadata = {
   title: 'سۈنئىي ئىدراك سۇپىسى — Uyghur AI Platform',
   description: 'OpenRouter & Gemini powered multimodal platform for Uyghur & English: Chat, Translation, Image Studio, TTS, and Ad Video.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ئۇيغۇر AI',
+  },
 };
 
 export const viewport: Viewport = {
@@ -26,6 +33,14 @@ export default function RootLayout({
   return (
     <html lang="ug" dir="rtl" className="dark w-full max-w-full overflow-x-hidden" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="ئۇيغۇر AI" />
+        <meta name="application-name" content="ئۇيغۇر AI" />
         <link rel="preload" href="/fonts/UKIJEkran.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/UKIJKa3D.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <script
@@ -62,6 +77,7 @@ export default function RootLayout({
         
         <AppProvider>
           <Header />
+          <PWAInstallPrompt />
           <main className="flex-1 w-full max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 pb-20 md:pb-6 relative z-10 min-w-0 overflow-x-hidden">
             {children}
           </main>

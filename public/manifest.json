@@ -1,0 +1,82 @@
+{
+  "name": "سۈنئىي ئىدراك — Uyghur AI Platform",
+  "short_name": "ئۇيغۇر AI",
+  "description": "ئۇيغۇرچە يۇقىرى ئىقتىدارلىق كۆپ ئىقتىدارلىق سۈنئىي ئىدراك ئەپ دېتالى",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait-primary",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "dir": "rtl",
+  "lang": "ug",
+  "categories": [
+    "productivity",
+    "utilities",
+    "ai",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ئەقلىي پاراڭ",
+      "short_name": "پاراڭ",
+      "description": "سۈنئىي ئىدراك بىلەن بىۋاسىتە پاراڭلىشىش",
+      "url": "/chat",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "تېكىست تەرجىمە",
+      "short_name": "تەرجىمە",
+      "description": "7 خىل ئۇسلۇبتىكى كۆپ تىللىق تەرجىمە",
+      "url": "/translate",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "رەسىم ھاسىل قىلىش",
+      "short_name": "رەسىم",
+      "description": "FLUX / 8K سەنئەت رەسىمى",
+      "url": "/image",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ئاۋاز چىقىرىش",
+      "short_name": "ئاۋاز",
+      "description": "48kHz ستۇدىيە سۈپىتىدىكى ئاۋازلاشتۇرۇش",
+      "url": "/tts",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "ئەسەرلەر تارىخى",
+      "short_name": "تارىخ",
+      "description": "بارلىق ھاسىل قىلىنغان ئەسەرلەر ئامبىرى",
+      "url": "/history",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
