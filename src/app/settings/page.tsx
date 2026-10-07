@@ -354,51 +354,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* App Version Control Card */}
-      <div className="p-6 rounded-3xl tech-card border border-white/[0.08] space-y-4 shadow-lg">
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>ئەپ نەشرى ۋە كونترول ھالىتى (App Version & Update Control)</span>
-          </h2>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            v1.0.1 (Build 101)
-          </span>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 tech-pulse" />
-              <h3 className="text-xs font-bold text-white">رەسمىي ئالىي ئەپ نەشرى 1.0.1 ئىشقا كىرىشتۈرۈلدى</h3>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              سۇپىدا مەجبۇرىي ئاپتوماتىك يېڭىلاش ھالىتى تەستىقلانغان. يېڭى نەشر تارقىتىلغان ھامان 360 گىرادۇسلۇق ئىلگىرىلەش كۆرسەتكۈچى بىلەن ئەپ ئىچىدىن بىۋاسىتە يېڭىلىنىدۇ.
-            </p>
-          </div>
-          <div className="shrink-0 flex items-center gap-2">
-            <a
-              href="https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk"
-              target="_blank"
-              rel="noopener noreferrer"
-              download="uyghur-ai-v1.0.1.apk"
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
-            >
-              <span>APK چۈشۈرۈش (1.0.1)</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-            <a
-              href="/version.json"
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-xs font-semibold transition flex items-center gap-1.5"
-            >
-              <span>نەشىر ھۆججىتى (JSON)</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      </div>
 
       {/* API Keys Configuration */}
       <div className="p-6 rounded-3xl tech-card border border-white/[0.08] space-y-5 shadow-lg">

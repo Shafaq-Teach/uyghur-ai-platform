@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle2, XCircle, Download } from 'lucide-react';
 
 export const CURRENT_APP_VERSION = '1.0.1';
 export const CURRENT_BUILD_NUMBER = 101;
@@ -171,8 +171,10 @@ export function AppUpdateManager() {
     setHasExited(true);
   };
 
+  const APK_DOWNLOAD_URL = 'https://raw.githubusercontent.com/Shafaq-Teach/uyghur-ai-platform/main/public/uyghur-ai-v1.0.1.apk';
+
   // Perform in-app update with 360-degree circular progress directly inside the app
-  // Absolutely no external websites or browsers are opened!
+  // and trigger native Android APK package installation
   const handleConfirmUpdate = () => {
     setIsUpdating(true);
     setProgress(0);
@@ -187,7 +189,7 @@ export function AppUpdateManager() {
         setProgress(100);
         setIsCompleted(true);
 
-        // 1. Record the newly updated version into local storage so it stays updated
+        // 1. Record the newly updated version into local storage
         try {
           const targetVer = remoteVersion?.version || '1.0.1';
           const targetBuild = String(remoteVersion?.build || 101);
@@ -209,14 +211,24 @@ export function AppUpdateManager() {
           }
         } catch (_) {}
 
-        // 3. Smooth in-app restart directly inside the app interface after 1.2s
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
+        // 3. Directly trigger Android system APK download & installation
+        try {
+          const link = document.createElement('a');
+          link.href = APK_DOWNLOAD_URL;
+          link.download = 'uyghur-ai-v1.0.1.apk';
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (_) {
+          try {
+            window.location.href = APK_DOWNLOAD_URL;
+          } catch (__) {}
+        }
       } else {
         setProgress(cur);
       }
-    }, 70);
+    }, 60);
   };
 
   // If no update needed, do not render modal
@@ -364,9 +376,43 @@ export function AppUpdateManager() {
           ) : (
             <div className="w-full space-y-3">
               {isCompleted ? (
-                <p className="text-xs text-emerald-300 leading-relaxed font-bold animate-pulse">
-                  يېڭىلاش تاماملاندى! ئەپ قايتا قوزغىلىۋاتىدۇ...
-                </p>
+                <div className="space-y-3 animate-fade-in">
+                  <p className="text-xs text-emerald-300 leading-relaxed font-bold">
+                    ✓ يېڭى نەشرى تەييارلاندى! ئاندىرويىد سىستېما ھۆججىتى (APK) نى قاچىلاشنى تاماملاڭ:
+                  </p>
+                  <a
+                    href={APK_DOWNLOAD_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download="uyghur-ai-v1.0.1.apk"
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
+                        localStorage.setItem('uyghur_ai_installed_build', '101');
+                      } catch (_) {}
+                      try {
+                        window.location.href = APK_DOWNLOAD_URL;
+                      } catch (_) {}
+                    }}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>APK نى يېڭىلاپ قاچىلاش (1.0.1)</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('uyghur_ai_installed_version', '1.0.1');
+                        localStorage.setItem('uyghur_ai_installed_build', '101');
+                      } catch (_) {}
+                      window.location.reload();
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 text-xs font-semibold transition"
+                  >
+                    ئەپنى ئېچىش
+                  </button>
+                </div>
               ) : (
                 <div className="py-2 flex items-center justify-center gap-2 text-xs text-cyan-300 font-bold">
                   <RefreshCw className="w-4 h-4 animate-spin" />
