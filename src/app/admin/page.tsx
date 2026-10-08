@@ -40,7 +40,8 @@ import {
   X,
   Coins,
   Plus,
-  Minus
+  Minus,
+  Ban
 } from 'lucide-react';
 import { SearchableModelSelect } from '@/components/SearchableModelSelect';
 
@@ -80,7 +81,8 @@ interface AdminConfigResponse {
     email: string;
     full_name: string;
     role: string;
-    coins?: number;
+    coins?: any;
+    is_banned?: boolean;
     created_at: string;
   }>;
   recentActivities?: Array<{
@@ -141,8 +143,9 @@ export default function AdminDashboardPage() {
 
   // User search and filter
   const [userSearch, setUserSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'banned'>('all');
   const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
+  const [banUpdatingId, setBanUpdatingId] = useState<string | null>(null);
 
   // Diagnostics state
   const [diagData, setDiagData] = useState<DiagnosticsData | null>(null);
@@ -340,6 +343,47 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleToggleUserBan = async (targetUser: any) => {
+    const newBannedState = !targetUser.is_banned;
+    const confirmMsg = newBannedState
+      ? `راستتىنلا «${targetUser.full_name || targetUser.email}» نى سىستېمىدىن چەكلىمەكچىمۇ؟`
+      : `راستتىنلا «${targetUser.full_name || targetUser.email}» نىڭ چەكلىنىشىنى بىكار قىلىپ ئاچماقچىمۇ؟`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setBanUpdatingId(targetUser.id);
+      const res = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toggleUserBan: {
+            userId: targetUser.id,
+            isBanned: newBannedState,
+          },
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.error || 'مەشغۇلات مەغلۇپ بولدى');
+      }
+
+      setData((prev) => {
+        if (!prev || !Array.isArray(prev.users)) return prev;
+        return {
+          ...prev,
+          users: prev.users.map((u) => (u.id === targetUser.id ? { ...u, is_banned: newBannedState } : u)),
+        };
+      });
+
+      alert(resData.message || (newBannedState ? 'ئەزا چەكلەندى' : 'ئەزا ئېچىلدى'));
+    } catch (err: any) {
+      alert('خاتالىق: ' + err.message);
+    } finally {
+      setBanUpdatingId(null);
+    }
+  };
+
   // Filtered users
   const filteredUsers = useMemo(() => {
     if (!data?.users) return [];
@@ -347,7 +391,12 @@ export default function AdminDashboardPage() {
       const matchSearch = !userSearch || 
         u.email?.toLowerCase().includes(userSearch.toLowerCase()) || 
         u.full_name?.toLowerCase().includes(userSearch.toLowerCase());
-      const matchRole = roleFilter === 'all' || u.role === roleFilter;
+      const matchRole = 
+        roleFilter === 'all' 
+          ? true 
+          : roleFilter === 'banned' 
+            ? Boolean(u.is_banned) 
+            : u.role === roleFilter;
       return matchSearch && matchRole;
     });
   }, [data?.users, userSearch, roleFilter]);
@@ -373,7 +422,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">باشقۇرغۇچى ھوقۇقى تەلەپ قىلىنىدۇ</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              بۇ مەركىزىي سەھىپە پەقەت ئورگان باشقۇرغۇچىسى (<span className="font-mono text-indigo-400">yulgun353@gmail.com</span>) ئۈچۈن قوغدالغان.
+              بۇ مەركىزىي سەھىپە پەقەت ئورگان باشقۇرغۇچىسى ئۈچۈن قوغدالغان.
             </p>
           </div>
           <button
@@ -900,6 +949,7 @@ export default function AdminDashboardPage() {
                 { id: 'all', label: 'ھەممىسى' },
                 { id: 'admin', label: 'باشقۇرغۇچىلار' },
                 { id: 'user', label: 'ئادەتتىكى ئەزالار' },
+                { id: 'banned', label: 'چەكلەنگەنلەر' },
               ].map(f => (
                 <button
                   key={f.id}
@@ -923,10 +973,10 @@ export default function AdminDashboardPage() {
                 <tr className="border-b border-slate-200 dark:border-white/[0.08] text-slate-400 font-semibold">
                   <th className="py-3.5 px-4">ئېلخەت ئادرېسى</th>
                   <th className="py-3.5 px-4">ئىسمى</th>
-                  <th className="py-3.5 px-4">ھازىرقى ھوقۇقى (Role)</th>
+                  <th className="py-3.5 px-4">ھوقۇقى ۋە ھالىتى</th>
                   <th className="py-3.5 px-4">تەڭگە سانى</th>
                   <th className="py-3.5 px-4">قوشۇلغان ۋاقتى</th>
-                  <th className="py-3.5 px-4 text-center">مەشغۇلات (تەڭگە & ھوقۇق)</th>
+                  <th className="py-3.5 px-4 text-center">مەشغۇلات (تەڭگە & ھوقۇق & چەكلەش)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
@@ -942,6 +992,7 @@ export default function AdminDashboardPage() {
                     const isSelf = u.email === user?.email;
                     const isUpdating = roleUpdatingId === u.id;
                     const isCoinUpdating = coinAdjustingId === u.id;
+                    const isBanUpdating = banUpdatingId === u.id;
 
                     return (
                       <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -957,13 +1008,25 @@ export default function AdminDashboardPage() {
                           {u.full_name || 'ئىشلەتكۈچى'}
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            isTargetAdmin 
-                              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                              : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                          }`}>
-                            {isTargetAdmin ? 'باشقۇرغۇچى (Admin)' : 'ئادەتتىكى ئەزا (User)'}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              isTargetAdmin 
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                            }`}>
+                              {isTargetAdmin ? 'باشقۇرغۇچى' : 'ئادەتتىكى ئەزا'}
+                            </span>
+                            {u.is_banned ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                                <Ban className="w-2.5 h-2.5" />
+                                <span>چەكلەنگەن</span>
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                                ئاكتىپ
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold">
@@ -1031,30 +1094,60 @@ export default function AdminDashboardPage() {
                             {isSelf ? (
                               <span className="text-[10px] text-slate-400 font-medium px-2 py-1">قوغدالغان</span>
                             ) : (
-                              <button
-                                type="button"
-                                disabled={isUpdating}
-                                onClick={() => handleToggleUserRole(u)}
-                                className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center gap-1 ${
-                                  isTargetAdmin
-                                    ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30'
-                                    : 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30'
-                                }`}
-                              >
-                                {isUpdating ? (
-                                  <RefreshCw className="w-3 h-3 animate-spin" />
-                                ) : isTargetAdmin ? (
-                                  <>
-                                    <UserX className="w-3 h-3" />
-                                    <span>User</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="w-3 h-3" />
-                                    <span>Admin</span>
-                                  </>
-                                )}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isUpdating}
+                                  onClick={() => handleToggleUserRole(u)}
+                                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center gap-1 ${
+                                    isTargetAdmin
+                                      ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30'
+                                      : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30'
+                                  }`}
+                                  title={isTargetAdmin ? 'ئادەتتىكى ئەزاغا ئۆزگەرتىش' : 'باشقۇرغۇچى قىلىپ بېكىتىش'}
+                                >
+                                  {isUpdating ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : isTargetAdmin ? (
+                                    <>
+                                      <UserX className="w-3 h-3" />
+                                      <span>User</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserCheck className="w-3 h-3" />
+                                      <span>Admin</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {/* Ban / Unban button */}
+                                <button
+                                  type="button"
+                                  disabled={isBanUpdating}
+                                  onClick={() => handleToggleUserBan(u)}
+                                  className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition flex items-center gap-1 ${
+                                    u.is_banned
+                                      ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
+                                  }`}
+                                  title={u.is_banned ? 'چەكلەشنى بىكار قىلىپ ئېچىش' : 'ئەزانى سىستېمىدىن چەكلەش'}
+                                >
+                                  {isBanUpdating ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : u.is_banned ? (
+                                    <>
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span>ئېچىش</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Ban className="w-3 h-3" />
+                                      <span>چەكلەش</span>
+                                    </>
+                                  )}
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>

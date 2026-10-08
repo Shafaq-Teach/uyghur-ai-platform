@@ -176,18 +176,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const isMasterAdmin = u.email?.toLowerCase() === 'yulgun353@gmail.com';
     let role: 'admin' | 'user' = isMasterAdmin ? 'admin' : 'user';
     let coins = 100;
+    let isBanned = false;
     try {
-      const { data } = await supabase.from('profiles').select('role, coins').eq('id', u.id).single();
+      const { data } = await supabase.from('profiles').select('role, coins, is_banned').eq('id', u.id).single();
       if (data?.role) {
         role = data.role as 'admin' | 'user';
       }
       if (typeof data?.coins === 'number') {
         coins = data.coins;
       }
+      if (typeof data?.is_banned === 'boolean') {
+        isBanned = data.is_banned;
+      }
     } catch (_) {}
 
     if (isMasterAdmin) {
       role = 'admin';
+      isBanned = false;
     }
 
     return {
@@ -197,6 +202,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       avatarUrl: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
       role,
       coins,
+      isBanned,
     };
   };
 
@@ -221,6 +227,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           success: false,
           error: 'سۈنئى ئەقىل ئىقتىدارلىرىنى ئىشلىتىش ئۈچۈن ئالدى بىلەن كىرىڭ ياكى تىزىملىتىڭ!',
+        };
+      }
+
+      if (user.isBanned) {
+        return {
+          success: false,
+          error: 'ھېساباتىڭىز باشقۇرغۇچى تەرىپىدىن چەكلەنگەن. بۇ ئىقتىدارنى ئىشلىتەلمەيسىز.',
         };
       }
 

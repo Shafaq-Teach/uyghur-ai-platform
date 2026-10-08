@@ -51,6 +51,7 @@ export interface UserProfile {
   avatarUrl?: string;
   role?: 'admin' | 'user';
   coins?: number;
+  isBanned?: boolean;
 }
 
 export interface SystemConfig {

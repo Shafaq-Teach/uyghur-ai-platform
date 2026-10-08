@@ -97,7 +97,7 @@ export const Header: React.FC = () => {
               {t.siteTitle}
             </span>
             <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 border border-indigo-500/20 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 shrink-0">
-              v1.0.4
+              v1.0.5
             </span>
           </div>
         </Link>

@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, email, full_name, avatar_url, role, coins, created_at')
+        .select('id, email, full_name, avatar_url, role, coins, is_banned, created_at')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -175,6 +175,29 @@ export async function POST(req: NextRequest) {
         success: true,
         coins: finalCoins,
         message: mode === 'add' ? `${numAmount} تەڭگە قوشۇلدى` : `${numAmount} تەڭگە ئېلىۋېتىلدى`,
+      });
+    }
+
+    // Handle user ban / unban
+    if (body.toggleUserBan) {
+      const { userId, isBanned } = body.toggleUserBan;
+      if (!userId || typeof isBanned !== 'boolean') {
+        return NextResponse.json({ error: 'userId ۋە isBanned تەلەپ قىلىنىدۇ' }, { status: 400 });
+      }
+
+      const { data: banRes, error: banErr } = await supabase.rpc('admin_toggle_user_ban', {
+        target_user_id: userId,
+        ban_status: isBanned,
+      });
+
+      if (banErr) {
+        return NextResponse.json({ error: banErr?.message || 'ئەزا ھالىتىنى ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        isBanned,
+        message: isBanned ? 'ئەزا سىستېمىدىن مۇۋەپپەقىيەتلىك چەكلەندى' : 'ئەزا مۇۋەپپەقىيەتلىك قايتا ئېچىلدى',
       });
     }
 

@@ -176,7 +176,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">تەڭشەكلەرنى پەقەت باشقۇرغۇچى ئۆزگەرتەلەيدۇ</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              API ئاچقۇچى ۋە سىستېما تەڭشەكلىرى مەركىزىي ئورگان باشقۇرغۇچىسى (<span className="font-mono text-indigo-400">yulgun353@gmail.com</span>) تەرىپىدىن بىردەك قوغدىلىدۇ ۋە باشقۇرۇلىدۇ. ئادەتتىكى ئەزالارنىڭ بۇ مەزمۇنلارنى كۆرۈش ياكى ئۆزگەرتىش ھوقۇقى چەكلەنگەن.
+              API ئاچقۇچى ۋە سىستېما تەڭشەكلىرى مەركىزىي ئورگان باشقۇرغۇچىسى تەرىپىدىن بىردەك قوغدىلىدۇ ۋە باشقۇرۇلىدۇ. ئادەتتىكى ئەزالارنىڭ بۇ مەزمۇنلارنى كۆرۈش ياكى ئۆزگەرتىش ھوقۇقى چەكلەنگەن.
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2.5">
