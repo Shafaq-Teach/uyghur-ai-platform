@@ -20,8 +20,16 @@ export async function POST(req: NextRequest) {
     const cleanOpenRouterKey = (openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
     const cleanGeminiKey = (geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY || '').trim();
 
+    // Smart Provider Resolution:
+    // If the model is a native Google Gemini model (e.g. 'gemini-3.8-pro', 'gemini-3.8-flash'),
+    // route it directly to Google Gemini if a Gemini API key is available!
+    const isNativeGeminiModel = !model.includes('/') && model.toLowerCase().includes('gemini');
+    const effectiveProvider = (provider === 'gemini' || (isNativeGeminiModel && cleanGeminiKey && cleanGeminiKey.length > 8))
+      ? 'gemini'
+      : (provider || 'openrouter');
+
     // Check if OpenRouter is requested
-    if (provider === 'openrouter') {
+    if (effectiveProvider === 'openrouter') {
       if (!cleanOpenRouterKey || cleanOpenRouterKey.length < 8) {
         return NextResponse.json(
           { 
@@ -156,7 +164,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Direct Gemini provider
-    if (provider === 'gemini') {
+    if (effectiveProvider === 'gemini') {
       if (!cleanGeminiKey || cleanGeminiKey.length < 8) {
         return NextResponse.json(
           { 

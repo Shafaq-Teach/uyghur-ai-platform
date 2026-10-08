@@ -59,8 +59,16 @@ CRITICAL RULES:
 2. If translating to Uyghur, write exclusively in standard Uyghur Arabic script (ئۇيغۇر تىلى يېزىقى) with correct ligatures and punctuation.
 3. Preserve the original formatting, line breaks, and any embedded code or numbers.`;
 
+    // Smart Provider Resolution:
+    // If the model is a native Google Gemini model (e.g. 'gemini-3.8-pro', 'gemini-3.8-flash'),
+    // route it directly to Google Gemini if a Gemini API key is available!
+    const isNativeGeminiModel = !model.includes('/') && model.toLowerCase().includes('gemini');
+    const effectiveProvider = (provider === 'gemini' || (isNativeGeminiModel && cleanGeminiKey && cleanGeminiKey.length > 8))
+      ? 'gemini'
+      : (provider || 'openrouter');
+
     // OpenRouter branch
-    if (provider === 'openrouter') {
+    if (effectiveProvider === 'openrouter') {
       if (!cleanOpenRouterKey || cleanOpenRouterKey.length < 8) {
         return NextResponse.json(
           { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
@@ -169,7 +177,7 @@ CRITICAL RULES:
     }
 
     // Direct Gemini branch
-    if (provider === 'gemini') {
+    if (effectiveProvider === 'gemini') {
       const effectiveGeminiKey = cleanGeminiKey;
       if (!effectiveGeminiKey || effectiveGeminiKey.length < 8) {
         return NextResponse.json(
