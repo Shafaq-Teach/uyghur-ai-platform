@@ -108,6 +108,55 @@ CRITICAL RULES:
       }
 
       if (!response.ok) {
+        // Fallback 1: Try with google/gemini-2.5-flash on OpenRouter if current model failed
+        if (model !== 'google/gemini-2.5-flash') {
+          const retryRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${cleanOpenRouterKey || serverConfig.openRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://uyghur-ai.local',
+              'X-Title': 'Uyghur AI Translator',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: text },
+              ],
+              temperature: 0.3,
+            }),
+          });
+          if (retryRes.ok) {
+            response = retryRes;
+          }
+        }
+
+        // Fallback 2: If OpenRouter still fails and Gemini key exists, seamlessly try direct Gemini
+        if (!response.ok && cleanGeminiKey && cleanGeminiKey.length > 8) {
+          const gemPayload = {
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemPrompt}\n\nInput text to translate:\n${text}` }],
+              },
+            ],
+            generationConfig: { temperature: 0.3 },
+          };
+          const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${cleanGeminiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(gemPayload),
+          });
+          if (gemRes.ok) {
+            const gemData = await gemRes.json();
+            const translation = gemData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+            return NextResponse.json({ translation });
+          }
+        }
+      }
+
+      if (!response.ok) {
         return NextResponse.json(
           { error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' },
           { status: response.status }
@@ -172,6 +221,32 @@ CRITICAL RULES:
             response = retryRes;
             break;
           }
+        }
+      }
+
+      // If Gemini still fails, seamlessly fallback to OpenRouter if key is available
+      if (!response.ok && cleanOpenRouterKey && cleanOpenRouterKey.length > 8) {
+        const orFallback = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanOpenRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Translator',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text },
+            ],
+            temperature: 0.3,
+          }),
+        });
+        if (orFallback.ok) {
+          const orData = await orFallback.json();
+          const translation = orData.choices?.[0]?.message?.content?.trim() || '';
+          return NextResponse.json({ translation });
         }
       }
 
