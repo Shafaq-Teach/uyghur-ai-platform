@@ -123,12 +123,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Clean model and migrate deprecated models (gemini-2.5-flash is replaced by gemini-3.8-flash by Google)
+      // Clean model and migrate deprecated models
       let geminiModel = model.replace(/^google\//, '').replace(/^models\//, '').trim();
       if (geminiModel === 'gemini-2.5-flash' || geminiModel === 'gemini-2.5-flash-latest' || !geminiModel) {
-        geminiModel = 'gemini-3.8-flash';
+        geminiModel = 'gemini-flash-latest';
       } else if (geminiModel === 'gemini-2.5-pro') {
-        geminiModel = 'gemini-3.8-pro';
+        geminiModel = 'gemini-pro-latest';
       }
 
       let geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${cleanGeminiKey}`;
@@ -152,9 +152,9 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(payload),
       });
 
-      // Auto-fallback if Google reports model deprecated or not found (404)
-      if (response.status === 404) {
-        const fallbackCandidates = ['gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      // Auto-fallback if Google reports model deprecated or unavailable (404, 503, 500)
+      if (!response.ok && (response.status === 404 || response.status === 503 || response.status === 500)) {
+        const fallbackCandidates = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.5-flash'];
         for (const candidate of fallbackCandidates) {
           if (candidate === geminiModel) continue;
           const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${cleanGeminiKey}`;
