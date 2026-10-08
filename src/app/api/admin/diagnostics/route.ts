@@ -35,11 +35,10 @@ export async function GET(req: NextRequest) {
     if (config.openRouterKey && config.openRouterKey.length > 5) {
       const orStart = performance.now();
       try {
-        const orRes = await fetch('https://openrouter.ai/api/v1/auth/key', {
+        const orRes = await fetch(`https://openrouter.ai/api/v1/auth/key?_t=${Date.now()}`, {
           headers: {
             'Authorization': `Bearer ${config.openRouterKey}`,
           },
-          cache: 'no-store',
         });
         openrouterLatency = Math.round(performance.now() - orStart);
         if (orRes.ok) {
@@ -69,9 +68,7 @@ export async function GET(req: NextRequest) {
     if (config.geminiKey && config.geminiKey.length > 5) {
       const gemStart = performance.now();
       try {
-        const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${config.geminiKey}`, {
-          cache: 'no-store',
-        });
+        const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${config.geminiKey}&_t=${Date.now()}`);
         geminiLatency = Math.round(performance.now() - gemStart);
         if (gemRes.ok) {
           geminiStatus = 'ok';
