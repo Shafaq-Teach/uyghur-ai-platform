@@ -78,6 +78,7 @@ export default function ImagePage() {
           style,
           model: settings.featureModels.image,
           provider: settings.featureProviders.image,
+          translateModel: settings.featureModels.translate,
           openRouterApiKey: settings.openRouterApiKey,
           geminiApiKey: settings.geminiApiKey,
         }),

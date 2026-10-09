@@ -121,6 +121,7 @@ export default function AdVideoPage() {
           aspectRatio,
           model: settings.featureModels.video,
           provider: settings.featureProviders.video,
+          translateModel: settings.featureModels.translate,
           openRouterApiKey: settings.openRouterApiKey,
           geminiApiKey: settings.geminiApiKey,
         }),

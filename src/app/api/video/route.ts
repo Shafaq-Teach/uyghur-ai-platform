@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       aspectRatio = '9:16',
       model = defaultModel,
       provider = 'openrouter',
+      translateModel: reqTranslateModel,
       openRouterApiKey,
       geminiApiKey,
     } = body;
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
     const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+    const effectiveTranslateModel = reqTranslateModel || serverConfig.activeModels?.translate || 'google/gemini-2.5-flash';
 
     // Strict No-Human Enforcement Layer
     const strictNegativePrompt = 'person, human, face, body, model, crowd, portrait, skin, fingers, hands, eyes';
@@ -109,9 +111,37 @@ Strictly write in fluent, natural, poetic Uyghur.`;
 پۈتۈن مەھسۇلات مەركەزدە ھەيۋەت بىلەن كۆرۈنىدۇ. تەشۋىقات شوئارى: «ئەلا سۈپەت، زامانىۋى نەپىسلىك».`;
     }
 
-    // 2. Translate Product Info into Clean English for Visual Diffusion
+    // 2. Translate Product Info into Clean English for Visual Diffusion using 🌐 Translate model
     let englishVisualPhrase = '';
-    if (effectiveOpenRouterKey) {
+    const isNativeGemini = !effectiveTranslateModel.includes('/') && effectiveTranslateModel.toLowerCase().includes('gemini');
+
+    if (isNativeGemini && effectiveGeminiKey) {
+      try {
+        const directModel = effectiveTranslateModel.includes('latest') ? effectiveTranslateModel : 'gemini-flash-latest';
+        const transRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${directModel}:generateContent?key=${effectiveGeminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Translate the product name and description into a concise English phrase suitable for luxury commercial product cinematography. Return ONLY the English phrase, no markdown, no quotes:\n${productName}. ${productDesc || ''}`
+              }]
+            }]
+          })
+        });
+        if (transRes.ok) {
+          const transJson = await transRes.json();
+          const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+          if (raw && !/[\u0600-\u06FF]/.test(raw)) {
+            englishVisualPhrase = raw.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini Direct visual translation failed', err);
+      }
+    }
+
+    if (!englishVisualPhrase && effectiveOpenRouterKey) {
       try {
         const transRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -120,7 +150,7 @@ Strictly write in fluent, natural, poetic Uyghur.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: effectiveTranslateModel,
             messages: [
               {
                 role: 'system',
@@ -135,7 +165,10 @@ Strictly write in fluent, natural, poetic Uyghur.`;
         });
         if (transRes.ok) {
           const transJson = await transRes.json();
-          englishVisualPhrase = transJson.choices?.[0]?.message?.content?.trim() || '';
+          const text = transJson.choices?.[0]?.message?.content?.trim() || '';
+          if (text && !/[\u0600-\u06FF]/.test(text)) {
+            englishVisualPhrase = text.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
+          }
         }
       } catch (err) {
         console.warn('Visual phrase translation failed', err);
@@ -146,13 +179,13 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       englishVisualPhrase = productName || 'luxury product';
     }
 
-    // 3. Generate Real High-End AI Commercial Visual Keyframe (matching aspect ratio)
+    // 3. Generate Real High-End AI Commercial Visual Keyframe (Flux.1 Diffusion)
     const seed = Math.floor(Math.random() * 1000000);
     const rawVisualPrompt = `${englishVisualPhrase}, luxury commercial advertising, ${chosenStyle.enDesc}, 8k cinema camera, dramatic studio lighting, masterpiece`;
-    const cleanVisualPrompt = rawVisualPrompt.replace(/['"`]/g, '').replace(/[^a-zA-Z0-9, ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanVisualPrompt = rawVisualPrompt.replace(/[\r\n\t]+/g, ' ').replace(/[#%&?/\\]/g, ' ').trim();
 
     const dims = aspectRatio === '16:9' ? { w: 1280, h: 720 } : aspectRatio === '1:1' ? { w: 1024, h: 1024 } : { w: 720, h: 1280 };
-    const posterImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanVisualPrompt)}?width=${dims.w}&height=${dims.h}&seed=${seed}&nologo=true`;
+    const posterImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanVisualPrompt)}?model=flux&width=${dims.w}&height=${dims.h}&seed=${seed}&nologo=true`;
 
     const videoPrompt = `Cinematic commercial ad of ${englishVisualPhrase}, ${chosenStyle.enDesc}, macro lens, dramatic rim lighting, 4K UHD, 60fps, product cinematography. Negative prompt: ${strictNegativePrompt}`;
 

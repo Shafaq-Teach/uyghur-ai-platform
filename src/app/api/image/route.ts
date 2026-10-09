@@ -3,16 +3,72 @@ import { getSystemConfigServer } from '@/lib/serverConfig';
 
 export const runtime = 'edge';
 
-async function translatePromptToEnglish(prompt: string, geminiKey?: string, openRouterKey?: string): Promise<string> {
+async function translatePromptToEnglish(
+  prompt: string,
+  translateModel: string,
+  geminiKey?: string,
+  openRouterKey?: string
+): Promise<string> {
   const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
   if (!isUyghurOrNonLatin) {
     return prompt.trim();
   }
 
   let englishText = '';
+  // Strictly use the active model configured under 🌐 تەرجىمە (Translate)
+  const targetTranslateModel = translateModel || 'google/gemini-2.5-flash';
 
-  // Tier 1: OpenRouter with google/gemini-2.5-flash (fast, state-of-the-art Uyghur comprehension)
-  if (openRouterKey) {
+  const isNativeGemini = !targetTranslateModel.includes('/') && targetTranslateModel.toLowerCase().includes('gemini');
+
+  // Tier 1: If 🌐 Translate model is a native Gemini model and geminiKey is available
+  if (isNativeGemini && geminiKey) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const directModel = targetTranslateModel.includes('latest') ? targetTranslateModel : 'gemini-flash-latest';
+
+      const transRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${directModel}:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `You are an expert Uyghur-to-English translator for AI visual generation (Flux.1 / Midjourney). Translate the following Uyghur description directly into a concise, detailed, highly visual English prompt describing the scene, lighting, atmosphere, and key objects. Output ONLY the English prompt. Do NOT add notes, explanations, or quotes:\n\n${prompt}`,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (transRes.ok) {
+        const transJson = await transRes.json();
+        const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        const lines = raw.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#') && !l.startsWith('*') && !l.startsWith('>'));
+        const candidate = lines.find((l: string) => !/[\u0600-\u06FF]/.test(l) && l.length > 3) || raw;
+        const cleaned = candidate
+          .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
+          .replace(/^(Direct Translation:|Translation:)\s*/i, '')
+          .trim();
+        if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
+          englishText = cleaned;
+          console.log(`[Translate Model: ${targetTranslateModel} (Gemini Direct)] prompt translation success:`, englishText);
+        }
+      }
+    } catch (err) {
+      console.warn(`[Translate Model: ${targetTranslateModel}] direct error:`, err);
+    }
+  }
+
+  // Tier 2: Call OpenRouter using the configured 🌐 Translate model
+  if (!englishText && openRouterKey) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 9000);
@@ -27,7 +83,7 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: targetTranslateModel,
           messages: [
             {
               role: 'system',
@@ -52,16 +108,18 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
             .trim();
           if (cleaned.length > 3) {
             englishText = cleaned;
-            console.log('OpenRouter Gemini prompt translation success:', englishText);
+            console.log(`[Translate Model: ${targetTranslateModel} (OpenRouter)] prompt translation success:`, englishText);
           }
         }
+      } else {
+        console.warn(`[Translate Model: ${targetTranslateModel}] failed with status:`, orRes.status);
       }
     } catch (err) {
-      console.warn('OpenRouter translation error:', err);
+      console.warn(`[Translate Model: ${targetTranslateModel}] translation error:`, err);
     }
   }
 
-  // Tier 2: Google Gemini direct API (gemini-flash-latest)
+  // Tier 3: Resilient fallback to Gemini Direct (gemini-flash-latest) if the chosen translate model failed or errored
   if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && geminiKey) {
     try {
       const controller = new AbortController();
@@ -99,15 +157,15 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
           .trim();
         if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
           englishText = cleaned;
-          console.log('Gemini Direct prompt translation success:', englishText);
+          console.log('Gemini fallback prompt translation success:', englishText);
         }
       }
     } catch (err) {
-      console.warn('Gemini translation error/timeout:', err);
+      console.warn('Gemini fallback translation error/timeout:', err);
     }
   }
 
-  // Tier 3: OpenRouter fallback with meta-llama/llama-3.3-70b-instruct
+  // Tier 4: Fallback to Llama 3.3 on OpenRouter
   if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && openRouterKey) {
     try {
       const controller = new AbortController();
@@ -145,12 +203,12 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
           const cleaned = content.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
           if (cleaned.length > 3) {
             englishText = cleaned;
-            console.log('Llama 3.3 prompt translation success:', englishText);
+            console.log('Llama fallback prompt translation success:', englishText);
           }
         }
       }
     } catch (err) {
-      console.warn('Llama 3.3 translation error:', err);
+      console.warn('Llama fallback translation error:', err);
     }
   }
 
@@ -175,6 +233,7 @@ export async function POST(req: NextRequest) {
       style = 'photorealistic',
       model = defaultModel,
       provider = 'openrouter',
+      translateModel: reqTranslateModel,
       openRouterApiKey,
       geminiApiKey
     } = body;
@@ -185,6 +244,9 @@ export async function POST(req: NextRequest) {
 
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
     const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+
+    // Use strictly the model configured under 🌐 تەرجىمە (Translate)
+    const effectiveTranslateModel = reqTranslateModel || serverConfig.activeModels?.translate || 'google/gemini-2.5-flash';
 
     // Calculate dimensions
     const dimensionMap: Record<string, { width: number; height: number }> = {
@@ -209,8 +271,13 @@ export async function POST(req: NextRequest) {
       minimalist: 'minimalist clean design, subtle shadows, elegant composition, muted pastel colors',
     };
 
-    // 1. Automatic Uyghur/Non-Latin -> English Translation for AI Image Models
-    const englishPrompt = await translatePromptToEnglish(prompt, effectiveGeminiKey, effectiveOpenRouterKey);
+    // 1. Automatic Uyghur/Non-Latin -> English Translation using 🌐 Translate model
+    const englishPrompt = await translatePromptToEnglish(
+      prompt,
+      effectiveTranslateModel,
+      effectiveGeminiKey,
+      effectiveOpenRouterKey
+    );
 
     const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
     const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
@@ -274,6 +341,7 @@ export async function POST(req: NextRequest) {
       enhancedPrompt: enrichedPrompt,
       aspectRatio,
       model: model || 'black-forest-labs/flux-1-schnell',
+      translateModel: effectiveTranslateModel,
     });
   } catch (error: any) {
     console.error('Image API Error:', error);
