@@ -326,8 +326,11 @@ export default function ImagePage() {
       <FeatureHistorySection 
         feature="image" 
         onReuse={(item) => {
-          setPrompt(item.prompt);
-          if (item.result) setResultImage(item.result);
+          setPrompt(item.data?.prompt || item.title || '');
+          if (item.data?.imageUrl || item.preview) {
+            setResultImage(item.data?.imageUrl || item.preview);
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
     </div>

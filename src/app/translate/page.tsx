@@ -320,8 +320,11 @@ export default function TranslatePage() {
       <FeatureHistorySection 
         feature="translate" 
         onReuse={(item) => {
-          setSourceText(item.prompt);
-          if (item.result) setTranslatedText(item.result);
+          setSourceText(item.data?.source || item.title || '');
+          if (item.data?.translated) setTranslatedText(item.data.translated);
+          if (item.data?.sourceLang) setSourceLang(item.data.sourceLang);
+          if (item.data?.targetLang) setTargetLang(item.data.targetLang);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
     </div>

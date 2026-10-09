@@ -101,12 +101,13 @@ export default function TtsPage() {
       addHistoryItem({
         type: 'tts',
         title: text.slice(0, 30),
-        preview: `ئاۋاز: ${voice}, سۈرئەت: ${speed}x`,
+        preview: text.slice(0, 80),
         data: {
           text,
           voice,
           speed,
           pitch,
+          audioUrl: data.audioUrl,
           model: settings.featureModels.tts,
         },
       });
@@ -378,8 +379,18 @@ export default function TtsPage() {
       <FeatureHistorySection 
         feature="tts" 
         onReuse={(item) => {
-          setText(item.prompt);
-          if (item.result) setAudioUrl(item.result);
+          const itemText = item.data?.text || item.title || '';
+          setText(itemText);
+          if (item.data?.voice) setVoice(item.data.voice);
+          if (typeof item.data?.speed === 'number') setSpeed(item.data.speed);
+          if (typeof item.data?.pitch === 'number') setPitch(item.data.pitch);
+          if (item.data?.audioUrl) {
+            setAudioUrl(item.data.audioUrl);
+            if (audioRef.current) {
+              audioRef.current.src = item.data.audioUrl;
+            }
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
     </div>

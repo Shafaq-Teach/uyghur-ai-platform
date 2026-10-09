@@ -488,7 +488,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = [newItem, ...prev.slice(0, 99)];
       try {
         localStorage.setItem('uyghur_ai_history', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) {
+        // If quota exceeded, strip heavy audioUrl strings from localStorage persistence
+        try {
+          const stripped = updated.map((h) => {
+            if (h.type === 'tts' && typeof h.data?.audioUrl === 'string' && h.data.audioUrl.length > 500) {
+              const { audioUrl, ...rest } = h.data;
+              return { ...h, data: rest };
+            }
+            return h;
+          });
+          localStorage.setItem('uyghur_ai_history', JSON.stringify(stripped));
+        } catch (_) {}
+      }
       return updated;
     });
 

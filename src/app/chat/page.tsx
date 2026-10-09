@@ -335,7 +335,8 @@ export default function ChatPage() {
       <FeatureHistorySection 
         feature="chat" 
         onReuse={(item) => {
-          setInput(item.prompt);
+          setInput(item.data?.prompt || item.title || '');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
     </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { HistoryItem } from '@/types';
 import { downloadMedia } from '@/lib/download';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -14,6 +15,7 @@ import {
   Sparkles, 
   Play, 
   Pause,
+  RefreshCw,
   Image as ImageIcon,
   Languages,
   Volume2,
@@ -22,8 +24,7 @@ import {
   Clock,
   Layers,
   ExternalLink,
-  Eye,
-  EyeOff
+  RotateCcw
 } from 'lucide-react';
 
 interface FeatureHistorySectionProps {
@@ -31,15 +32,43 @@ interface FeatureHistorySectionProps {
   onReuse?: (item: HistoryItem) => void;
 }
 
+function isValidAudioUrl(url: any): boolean {
+  if (typeof url !== 'string') return false;
+  return url.startsWith('data:audio/') || url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://');
+}
+
+function formatAudioTime(seconds: number): string {
+  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
 export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectionProps) {
-  const { history, removeHistoryItem, isRtl } = useApp();
+  const { history, removeHistoryItem, isRtl, settings } = useApp();
   // Open by default so user can immediately see history, or toggle with 1 click
   const [isOpen, setIsOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
+
+  // Audio player state
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const [audioCache, setAudioCache] = useState<Record<string, string>>({});
+  const [audioProgress, setAudioProgress] = useState<Record<string, { current: number; duration: number }>>({});
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Filter history for this feature only
   const items = history.filter((h) => h.type === feature);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+      }
+    };
+  }, []);
 
   const meta = {
     image: {
@@ -99,6 +128,127 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
       });
     } catch {
       return '';
+    }
+  };
+
+  // Obtain or synthesize audio URL on-demand
+  const getOrSynthesizeAudio = async (item: HistoryItem): Promise<string | null> => {
+    if (audioCache[item.id]) return audioCache[item.id];
+    if (isValidAudioUrl(item.data?.audioUrl)) return item.data.audioUrl;
+    if (isValidAudioUrl(item.preview)) return item.preview;
+
+    const textToSynthesize = item.data?.text || item.title;
+    if (!textToSynthesize || !textToSynthesize.trim()) return null;
+
+    setLoadingAudioId(item.id);
+    try {
+      const res = await apiFetch('/api/tts', {
+        method: 'POST',
+        body: JSON.stringify({
+          text: textToSynthesize.trim(),
+          voice: item.data?.voice || 'female1',
+          speed: item.data?.speed || 1.0,
+          pitch: item.data?.pitch || 1.0,
+          model: settings?.featureModels?.tts,
+          provider: settings?.featureProviders?.tts,
+          openRouterApiKey: settings?.openRouterApiKey,
+          geminiApiKey: settings?.geminiApiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.audioUrl) {
+        throw new Error(data.message || data.error || 'ئاۋاز ھاسىل قىلىش مەغلۇپ بولدى');
+      }
+
+      setAudioCache((prev) => ({ ...prev, [item.id]: data.audioUrl }));
+      return data.audioUrl;
+    } catch (err: any) {
+      console.error('Audio synthesis error:', err);
+      return null;
+    } finally {
+      setLoadingAudioId(null);
+    }
+  };
+
+  // Toggle play/pause for TTS audio cards
+  const handleTogglePlayAudio = async (item: HistoryItem) => {
+    // If currently playing this item, pause it
+    if (playingAudioId === item.id) {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+      }
+      setPlayingAudioId(null);
+      return;
+    }
+
+    // Stop currently playing audio if any
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+      setPlayingAudioId(null);
+    }
+
+    const audioUrl = await getOrSynthesizeAudio(item);
+    if (!audioUrl) return;
+
+    try {
+      const audio = new Audio(audioUrl);
+      activeAudioRef.current = audio;
+      audio.playbackRate = typeof item.data?.speed === 'number' ? item.data.speed : 1.0;
+
+      audio.onloadedmetadata = () => {
+        setAudioProgress((prev) => ({
+          ...prev,
+          [item.id]: { current: 0, duration: audio.duration || 0 },
+        }));
+      };
+
+      audio.ontimeupdate = () => {
+        setAudioProgress((prev) => ({
+          ...prev,
+          [item.id]: { current: audio.currentTime, duration: audio.duration || prev[item.id]?.duration || 0 },
+        }));
+      };
+
+      audio.onended = () => {
+        setPlayingAudioId(null);
+        setAudioProgress((prev) => ({
+          ...prev,
+          [item.id]: { current: 0, duration: prev[item.id]?.duration || 0 },
+        }));
+      };
+
+      audio.onerror = () => {
+        setPlayingAudioId(null);
+      };
+
+      await audio.play();
+      setPlayingAudioId(item.id);
+    } catch (playErr) {
+      console.warn('Playback error:', playErr);
+      setPlayingAudioId(null);
+    }
+  };
+
+  // Download .wav file
+  const handleDownloadAudio = async (item: HistoryItem) => {
+    const audioUrl = await getOrSynthesizeAudio(item);
+    if (audioUrl) {
+      downloadMedia(audioUrl, `voice-${item.id}.wav`);
+    }
+  };
+
+  // Seek within audio track
+  const handleSeekAudio = (item: HistoryItem, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!activeAudioRef.current || playingAudioId !== item.id) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const ratio = Math.max(0, Math.min(1, clickX / width));
+    const duration = activeAudioRef.current.duration || 0;
+    if (duration > 0) {
+      activeAudioRef.current.currentTime = duration * ratio;
     }
   };
 
@@ -184,6 +334,16 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                               <Download className="w-4 h-4" />
                             </button>
                           )}
+                          {onReuse && (
+                            <button
+                              type="button"
+                              onClick={() => onReuse(item)}
+                              className="p-2 rounded-xl bg-rose-500/40 hover:bg-rose-500/60 text-white transition shadow"
+                              title="ستۇدىيەگە قايتا قاچىلاش"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => handleCopy(item.id, item.data?.prompt || item.title || '', e)}
@@ -229,6 +389,16 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-slate-500">{formatDate(item.createdAt)}</span>
+                          {onReuse && (
+                            <button
+                              type="button"
+                              onClick={() => onReuse(item)}
+                              className="p-1 hover:text-emerald-400 transition"
+                              title="ستۇدىيەگە قايتا قاچىلاش"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => handleCopy(item.id, item.data?.translated || item.preview || '', e)}
@@ -248,14 +418,12 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                         </div>
                       </div>
                       <div className="space-y-1.5 text-xs">
-                        {item.data?.source && (
-                          <div className="text-slate-400 text-[11px] bg-black/20 p-2 rounded-xl">
-                            <span className="text-slate-500 block text-[10px] mb-0.5">ئەسلى تېكىست:</span>
-                            {item.data.source}
-                          </div>
-                        )}
-                        <div className="text-slate-200 bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-xl font-medium">
-                          <span className="text-emerald-400/80 block text-[10px] mb-0.5">تەرجىمىسى:</span>
+                        <div className="text-slate-400 line-clamp-2 bg-black/20 p-2 rounded-xl">
+                          <span className="text-[10px] text-slate-500 block mb-0.5">ئەسلى تېكىست:</span>
+                          {item.data?.source || item.title}
+                        </div>
+                        <div className="text-emerald-300 font-medium line-clamp-3 bg-emerald-950/20 p-2 rounded-xl border border-emerald-500/10">
+                          <span className="text-[10px] text-emerald-500 block mb-0.5">تەرجىمىسى:</span>
                           {item.data?.translated || item.preview}
                         </div>
                       </div>
@@ -264,66 +432,141 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                 </div>
               )}
 
-              {/* TTS Voice Cards */}
+              {/* TTS Voice Cards with Interactive Audio Engine */}
               {feature === 'tts' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {items.map((item) => {
-                    const audioSrc = item.preview || item.data?.audioUrl;
+                    const isPlaying = playingAudioId === item.id;
+                    const isLoading = loadingAudioId === item.id;
+                    const progress = audioProgress[item.id] || { current: 0, duration: 0 };
+                    const progressPercent = progress.duration > 0 ? (progress.current / progress.duration) * 100 : 0;
+
                     return (
                       <div
                         key={item.id}
-                        className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:border-amber-500/30 transition space-y-3 text-right"
+                        className={`p-4 rounded-2xl bg-white/[0.02] border transition space-y-3 text-right flex flex-col justify-between ${
+                          isPlaying 
+                            ? 'border-amber-500/60 shadow-lg shadow-amber-500/10 bg-amber-950/10' 
+                            : 'border-white/[0.08] hover:border-amber-500/30'
+                        }`}
                       >
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-amber-400 font-bold flex items-center gap-1.5">
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>ئاۋازلىق ئەسەر</span>
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-500">{formatDate(item.createdAt)}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeHistoryItem(item.id)}
-                              className="p-1 hover:text-rose-400 transition"
-                              title="ئۆچۈرۈش"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                        <div>
+                          {/* Card Header */}
+                          <div className="flex items-center justify-between text-[11px] pb-2 border-b border-white/[0.05]">
+                            <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                              <Volume2 className="w-3.5 h-3.5" />
+                              <span>ئاۋازلىق ئەسەر</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500">{formatDate(item.createdAt)}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeHistoryItem(item.id)}
+                                className="p-1 hover:text-rose-400 transition text-slate-500"
+                                title="ئۆچۈرۈش"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
+
+                          {/* Speech Text */}
+                          <p className="text-xs text-slate-200 line-clamp-3 leading-relaxed bg-black/25 p-2.5 rounded-xl mt-2 select-text font-medium">
+                            {item.data?.text || item.title || item.preview || 'ئاۋازغا ئايلاندۇرۇلغان تېكىست'}
+                          </p>
                         </div>
 
-                        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed bg-black/20 p-2 rounded-xl">
-                          {item.title || item.data?.text || 'ئاۋازغا ئايلاندۇرۇلغان تېكىست'}
-                        </p>
+                        {/* Interactive Sound Player Bar */}
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.08] space-y-2 mt-2">
+                          <div className="flex items-center gap-2.5">
+                            {/* Play / Pause / Load Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePlayAudio(item)}
+                              disabled={isLoading}
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center transition shadow-md shrink-0 ${
+                                isPlaying
+                                  ? 'bg-amber-500 text-slate-950 font-bold scale-105'
+                                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 hover:scale-105 active:scale-95'
+                              }`}
+                              title={isPlaying ? 'توختىتىش' : 'ئاۋازنى قويۇش'}
+                            >
+                              {isLoading ? (
+                                <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                              ) : isPlaying ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4 translate-x-0.5" />
+                              )}
+                            </button>
 
-                        {audioSrc && (
-                          <div className="space-y-2 pt-1">
-                            <audio
-                              controls
-                              src={audioSrc}
-                              className="w-full h-8"
-                              preload="none"
-                            />
-                            <div className="flex items-center justify-between gap-2 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => downloadMedia(audioSrc, `voice-${item.id}.wav`)}
-                                className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[11px] font-medium transition"
+                            {/* Player Track and Timers */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between text-[11px] mb-1">
+                                <span className="text-amber-300/90 font-medium truncate text-[11px]">
+                                  {isLoading
+                                    ? 'ئاۋاز ھازىرلىنىۋاتىدۇ...'
+                                    : isPlaying
+                                    ? 'ئاڭلىنىۋاتىدۇ...'
+                                    : audioCache[item.id] || isValidAudioUrl(item.data?.audioUrl)
+                                    ? 'ئاڭلاشقا تەييار'
+                                    : 'چەكسىڭىز ئاڭلىتىدۇ'}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  {formatAudioTime(progress.current)} / {formatAudioTime(progress.duration)}
+                                </span>
+                              </div>
+
+                              {/* Interactive Progress Track */}
+                              <div
+                                onClick={(e) => handleSeekAudio(item, e)}
+                                className="w-full h-2 rounded-full bg-white/[0.08] overflow-hidden cursor-pointer relative group/track"
+                                title="ئىلگىرى-كېيىن قىلىش"
                               >
-                                <Download className="w-3 h-3" />
-                                <span>چۈشۈرۈش (.wav)</span>
-                              </button>
+                                <div
+                                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-100 rounded-full"
+                                  style={{ width: `${isPlaying || progressPercent > 0 ? Math.max(progressPercent, 4) : 0}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Footer Action Buttons */}
+                          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-white/[0.05]">
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAudio(item)}
+                              disabled={isLoading}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] font-medium transition"
+                              title="ئاۋاز ھۆججىتىنى كومپيۇتېر ياكى تېلېفونغا چۈشۈرۈش"
+                            >
+                              <Download className="w-3 h-3" />
+                              <span>چۈشۈرۈش (.wav)</span>
+                            </button>
+
+                            <div className="flex items-center gap-1.5">
+                              {onReuse && (
+                                <button
+                                  type="button"
+                                  onClick={() => onReuse(item)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 border border-white/[0.08] text-[10px] transition"
+                                  title="ستۇدىيەدە ئېچىش ۋە تەھرىرلەش"
+                                >
+                                  <ExternalLink className="w-3 h-3 text-amber-400" />
+                                  <span>ستۇدىيەدە ئېچىش</span>
+                                </button>
+                              )}
                               <button
                                 type="button"
-                                onClick={(e) => handleCopy(item.id, item.title || item.data?.text || '', e)}
-                                className="p-1.5 text-slate-400 hover:text-white transition"
+                                onClick={(e) => handleCopy(item.id, item.data?.text || item.title || '', e)}
+                                className="p-1 text-slate-400 hover:text-white transition rounded"
                                 title="تېكىستنى كۆچۈرۈش"
                               >
                                 {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                               </button>
                             </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
@@ -336,7 +579,7 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.08] hover:border-purple-500/30 transition shadow-lg text-right flex flex-col"
+                      className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.08] hover:border-purple-500/30 transition shadow-lg text-right flex flex-col justify-between"
                     >
                       {item.preview && (
                         <div className="aspect-video relative overflow-hidden bg-slate-950">
@@ -367,16 +610,29 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-white/[0.05]">
-                          {item.preview && (
-                            <button
-                              type="button"
-                              onClick={() => downloadMedia(item.preview, `keyframe-${item.id}.png`)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-[11px] transition"
-                            >
-                              <Download className="w-3 h-3" />
-                              <span>رەسىمنى چۈشۈرۈش</span>
-                            </button>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {item.preview && (
+                              <button
+                                type="button"
+                                onClick={() => downloadMedia(item.preview, `keyframe-${item.id}.png`)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 text-[11px] transition"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>چۈشۈرۈش</span>
+                              </button>
+                            )}
+                            {onReuse && (
+                              <button
+                                type="button"
+                                onClick={() => onReuse(item)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 border border-white/[0.08] text-[10px] transition"
+                                title="ستۇدىيەدە ئېچىش"
+                              >
+                                <ExternalLink className="w-3 h-3 text-purple-400" />
+                                <span>ئېچىش</span>
+                              </button>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5">
                             {item.data?.storyboard && (
                               <button
@@ -416,13 +672,26 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
                         <h4 className="font-bold text-white text-xs truncate">
                           {item.title}
                         </h4>
-                        <button
-                          type="button"
-                          onClick={() => removeHistoryItem(item.id)}
-                          className="p-1 hover:text-rose-400 transition text-slate-500"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {onReuse && (
+                            <button
+                              type="button"
+                              onClick={() => onReuse(item)}
+                              className="p-1 hover:text-indigo-400 transition text-slate-500"
+                              title="قايتا ئەۋەتىش"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeHistoryItem(item.id)}
+                            className="p-1 hover:text-rose-400 transition text-slate-500"
+                            title="ئۆچۈرۈش"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-[11px] text-slate-400 line-clamp-2">
                         {item.preview}

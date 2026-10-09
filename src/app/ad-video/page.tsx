@@ -602,7 +602,15 @@ export default function AdVideoPage() {
       </div>
 
       {/* 1-Click Collapsible Saved Commercial Video History */}
-      <FeatureHistorySection feature="video" />
+      <FeatureHistorySection 
+        feature="video" 
+        onReuse={(item) => {
+          if (item.data?.productName) setProductName(item.data.productName);
+          if (item.data?.productDesc) setProductDesc(item.data.productDesc);
+          if (item.data?.adStyle) setAdStyle(item.data.adStyle);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }
