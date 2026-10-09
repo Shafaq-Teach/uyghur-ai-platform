@@ -67,7 +67,9 @@ export async function POST(req: NextRequest) {
       voice = 'female1', 
       speed = 1.0, 
       pitch = 1.0,
+      model = serverConfig.activeModels?.tts || 'google/gemini-3.8-flash-lite-tts',
       openRouterApiKey,
+      geminiApiKey,
     } = body;
 
     if (!text || !text.trim()) {
@@ -75,6 +77,33 @@ export async function POST(req: NextRequest) {
     }
 
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
+    const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+
+    // 1. Native Google Gemini TTS (e.g. google/gemini-3.8-flash-lite-tts)
+    if (effectiveGeminiKey && model.includes('gemini')) {
+      const cleanModel = model.replace(/^google\//, '').replace(/^models\//, '').trim() || 'gemini-3.8-flash-lite-tts';
+      try {
+        const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${effectiveGeminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: text.trim() }] }]
+          })
+        });
+
+        if (gemRes.ok) {
+          const gemData = await gemRes.json();
+          const part = gemData.candidates?.[0]?.content?.parts?.[0];
+          if (part?.inlineData?.data) {
+            const mimeType = part.inlineData.mimeType || 'audio/wav';
+            const audioUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+            return NextResponse.json({ audioUrl, format: 'wav', model: cleanModel });
+          }
+        }
+      } catch (gemErr) {
+        console.warn('Gemini direct TTS error, falling back to OpenRouter:', gemErr);
+      }
+    }
 
     if (!effectiveOpenRouterKey) {
       return NextResponse.json({ error: 'سۈنئىي ئەقىل ئاچقۇچى (API Key) تېپىلمىدى' }, { status: 401 });
@@ -95,7 +124,8 @@ export async function POST(req: NextRequest) {
     };
     const targetVoice = voiceMap[voice] || (voice.includes('male') && !voice.includes('fe') ? 'echo' : 'nova');
 
-    // Call OpenAI GPT-Audio model via OpenRouter
+    // Call OpenAI GPT-Audio model via OpenRouter as fallback or secondary engine
+    const ttsOpenRouterModel = model.includes('gemini') ? 'openai/gpt-audio-mini' : model;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -105,7 +135,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Uyghur AI Voice Studio',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-audio-mini',
+        model: ttsOpenRouterModel,
         messages: [
           {
             role: 'system',

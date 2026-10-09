@@ -82,7 +82,7 @@ Strictly write in fluent, natural, poetic Uyghur.`;
             'X-Title': 'Uyghur AI Video Studio',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: serverConfig.activeModels?.chat || 'google/gemini-3.8-flash',
             messages: [
               { role: 'user', content: storyboardPrompt }
             ],
