@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia, downloadText, recordAndDownloadVideo } from '@/lib/download';
 import { apiFetch } from '@/lib/apiClient';
+import { FeatureHistorySection } from '@/components/FeatureHistorySection';
 import { 
   Video, 
   Upload, 
@@ -235,21 +236,6 @@ export default function AdVideoPage() {
       {/* Model Selector Bar */}
       <ModelBar feature="video" featureTitle={t.fVideoTitle} />
 
-      {/* Safety & Quality Policy Alert with Cyber Guard styling */}
-      <div className="p-4.5 rounded-3xl bg-purple-950/30 border border-purple-500/30 flex items-start gap-3.5 text-xs leading-relaxed text-purple-200 backdrop-blur-md shadow-lg">
-        <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 mt-0.5">
-          <ShieldCheck className="w-5 h-5 text-purple-300" />
-        </div>
-        <div>
-          <span className="font-bold text-white block mb-1 text-sm">
-            {t.videoNoticeTitle}
-          </span>
-          <p className="text-purple-300/90">
-            {t.videoNotice}
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Input Column */}
         <div className="lg:col-span-6 space-y-5">
@@ -416,8 +402,8 @@ export default function AdVideoPage() {
                 <span>{t.scriptTitle}</span>
               </h4>
               <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                VERIFIED: NON-HUMAN
+                <Sparkles className="w-3.5 h-3.5" />
+                {t.verifiedNonHuman || '8K CINEMATIC QUALITY'}
               </span>
             </div>
 
@@ -614,6 +600,9 @@ export default function AdVideoPage() {
           </div>
         </div>
       </div>
+
+      {/* 1-Click Collapsible Saved Commercial Video History */}
+      <FeatureHistorySection feature="video" />
     </div>
   );
 }

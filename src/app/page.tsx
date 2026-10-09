@@ -98,8 +98,8 @@ export default function HomePage() {
       badgeColor: 'text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/10 border-purple-200/80 dark:border-purple-500/30',
       dotColor: 'bg-purple-500 dark:bg-purple-400',
       textColor: 'text-purple-600 dark:text-purple-400',
-      tag: lang === 'ug' ? 'ئادەمسىز • ماكرو فىلىم' : 'Strictly No Humans • Macro',
-      stats: lang === 'ug' ? 'كەسپىي سۈپەت • ئەقلىي سېنارىيە' : '3-Layer Safety • Cinematic 4K',
+      tag: lang === 'ug' ? '8K ستۇدىيە • ماكرو فىلىم' : '8K Studio • Macro Cinema',
+      stats: lang === 'ug' ? 'كەسپىي سۈپەت • ئەقلىي سېنارىيە' : 'Cinematic 8K • Intelligent Storyboard',
     },
     {
       id: 'history',

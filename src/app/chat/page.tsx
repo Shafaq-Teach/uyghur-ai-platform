@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { apiFetch } from '@/lib/apiClient';
+import { FeatureHistorySection } from '@/components/FeatureHistorySection';
 import { 
   Send, 
   Trash2, 
@@ -329,6 +330,14 @@ export default function ChatPage() {
           </button>
         </div>
       </form>
+
+      {/* 1-Click Collapsible Saved Chat History */}
+      <FeatureHistorySection 
+        feature="chat" 
+        onReuse={(item) => {
+          setInput(item.prompt);
+        }}
+      />
     </div>
   );
 }

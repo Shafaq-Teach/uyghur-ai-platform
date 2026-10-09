@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia } from '@/lib/download';
 import { apiFetch } from '@/lib/apiClient';
+import { FeatureHistorySection } from '@/components/FeatureHistorySection';
 import { 
   Sparkles, 
   Download, 
@@ -320,6 +321,15 @@ export default function ImagePage() {
           </div>
         </div>
       </div>
+
+      {/* 1-Click Collapsible Saved Image History */}
+      <FeatureHistorySection 
+        feature="image" 
+        onReuse={(item) => {
+          setPrompt(item.prompt);
+          if (item.result) setResultImage(item.result);
+        }}
+      />
     </div>
   );
 }

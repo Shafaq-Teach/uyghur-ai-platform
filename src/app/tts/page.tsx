@@ -5,6 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia } from '@/lib/download';
 import { apiFetch } from '@/lib/apiClient';
+import { FeatureHistorySection } from '@/components/FeatureHistorySection';
 import { 
   Volume2, 
   Play, 
@@ -372,6 +373,15 @@ export default function TtsPage() {
           </button>
         </div>
       </div>
+
+      {/* 1-Click Collapsible Saved Audio History */}
+      <FeatureHistorySection 
+        feature="tts" 
+        onReuse={(item) => {
+          setText(item.prompt);
+          if (item.result) setAudioUrl(item.result);
+        }}
+      />
     </div>
   );
 }

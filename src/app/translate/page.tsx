@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { apiFetch } from '@/lib/apiClient';
+import { FeatureHistorySection } from '@/components/FeatureHistorySection';
 import { 
   ArrowLeftRight, 
   Copy, 
@@ -314,6 +315,15 @@ export default function TranslatePage() {
           <span>{t.transButton}</span>
         </button>
       </div>
+
+      {/* 1-Click Collapsible Saved Translation History */}
+      <FeatureHistorySection 
+        feature="translate" 
+        onReuse={(item) => {
+          setSourceText(item.prompt);
+          if (item.result) setTranslatedText(item.result);
+        }}
+      />
     </div>
   );
 }
