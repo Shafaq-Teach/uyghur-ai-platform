@@ -15,63 +15,45 @@ async function translatePromptToEnglish(
   }
 
   let englishText = '';
-  // Strictly use the active model configured under 🌐 تەرجىمە (Translate)
-  const targetTranslateModel = translateModel || 'google/gemini-2.5-flash';
 
-  const isNativeGemini = !targetTranslateModel.includes('/') && targetTranslateModel.toLowerCase().includes('gemini');
-
-  // Tier 1: If 🌐 Translate model is a native Gemini model and geminiKey is available
-  if (isNativeGemini && geminiKey) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
-      const directModel = targetTranslateModel.includes('latest') ? targetTranslateModel : 'gemini-flash-latest';
-
-      const transRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${directModel}:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are an expert Uyghur-to-English translator for AI visual generation (Flux.1 / Midjourney). Translate the following Uyghur description directly into a concise, detailed, highly visual English prompt describing the scene, lighting, atmosphere, and key objects. Output ONLY the English prompt. Do NOT add notes, explanations, or quotes:\n\n${prompt}`,
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
-      clearTimeout(timeoutId);
-
-      if (transRes.ok) {
-        const transJson = await transRes.json();
-        const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        const lines = raw.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#') && !l.startsWith('*') && !l.startsWith('>'));
-        const candidate = lines.find((l: string) => !/[\u0600-\u06FF]/.test(l) && l.length > 3) || raw;
-        const cleaned = candidate
-          .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
-          .replace(/^(Direct Translation:|Translation:)\s*/i, '')
-          .trim();
-        if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
-          englishText = cleaned;
-          console.log(`[Translate Model: ${targetTranslateModel} (Gemini Direct)] prompt translation success:`, englishText);
-        }
-      }
-    } catch (err) {
-      console.warn(`[Translate Model: ${targetTranslateModel}] direct error:`, err);
-    }
+  // 1. Normalize model name for the 🌐 Translate engine
+  let primaryModel = translateModel || 'google/gemini-2.5-flash';
+  if (!primaryModel.includes('/') && primaryModel.toLowerCase().includes('gemini')) {
+    primaryModel = `google/${primaryModel}`;
+  }
+  // If the admin or user chose a placeholder/future tag like gemini-3.8-flash, map to high-speed gemini-2.5-flash
+  if (primaryModel === 'google/gemini-3.8-flash' || primaryModel === 'gemini-3.8-flash') {
+    primaryModel = 'google/gemini-2.5-flash';
   }
 
-  // Tier 2: Call OpenRouter using the configured 🌐 Translate model
-  if (!englishText && openRouterKey) {
+  const systemInstructions =
+    'You are an expert Uyghur-to-English visual prompt translator for AI image generation (Flux.1 / Midjourney). ' +
+    'Translate the following Uyghur description directly into a concise, detailed, high-quality visual English prompt describing the scene, lighting, atmosphere, and key objects. ' +
+    'CRITICAL: Return ONLY the English translation in 1 or 2 sentences. Do NOT output any Uyghur text. Do NOT add markdown, explanations, or quotes.';
+
+  // Helper to extract clean English from model response
+  const extractCleanEnglish = (raw: string): string => {
+    if (!raw) return '';
+    // Look for lines that don't have Arabic/Uyghur script
+    const lines = raw
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#') && !l.startsWith('('));
+    const nonUyghurLine = lines.find((l) => !/[\u0600-\u06FF]/.test(l) && l.length > 8);
+    const candidate = nonUyghurLine || raw;
+    const cleaned = candidate
+      .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
+      .replace(/^(Direct Translation:|Translation:|Prompt:)\s*/i, '')
+      .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
+      .trim();
+    return !/[\u0600-\u06FF]/.test(cleaned) && cleaned.length > 5 ? cleaned : '';
+  };
+
+  // Tier 1: OpenRouter with the configured 🌐 Translate model (Fast: ~2.5s)
+  if (openRouterKey) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const timeoutId = setTimeout(() => controller.abort(), 6500);
 
       const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -83,16 +65,10 @@ async function translatePromptToEnglish(
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: targetTranslateModel,
+          model: primaryModel,
           messages: [
-            {
-              role: 'system',
-              content: 'You are an expert Uyghur-to-English translator for AI image generation (Flux.1 / Midjourney). Translate the Uyghur prompt into a vivid, descriptive, high-quality English visual prompt. Return ONLY the direct English translation without preamble, without markdown, without quotes, without introductory text.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: prompt },
           ],
         }),
       });
@@ -100,76 +76,25 @@ async function translatePromptToEnglish(
 
       if (orRes.ok) {
         const orData = await orRes.json();
-        const content = orData.choices?.[0]?.message?.content?.trim();
-        if (content && !/[\u0600-\u06FF]/.test(content)) {
-          const cleaned = content
-            .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
-            .replace(/^(Direct Translation:|Translation:)\s*/i, '')
-            .trim();
-          if (cleaned.length > 3) {
-            englishText = cleaned;
-            console.log(`[Translate Model: ${targetTranslateModel} (OpenRouter)] prompt translation success:`, englishText);
-          }
+        const content = orData.choices?.[0]?.message?.content?.trim() || '';
+        const parsed = extractCleanEnglish(content);
+        if (parsed) {
+          englishText = parsed;
+          console.log(`[Translate Model: ${primaryModel}] translation success:`, englishText);
         }
       } else {
-        console.warn(`[Translate Model: ${targetTranslateModel}] failed with status:`, orRes.status);
+        console.warn(`[Translate Model: ${primaryModel}] OpenRouter status:`, orRes.status);
       }
     } catch (err) {
-      console.warn(`[Translate Model: ${targetTranslateModel}] translation error:`, err);
+      console.warn(`[Translate Model: ${primaryModel}] error:`, err);
     }
   }
 
-  // Tier 3: Resilient fallback to Gemini Direct (gemini-flash-latest) if the chosen translate model failed or errored
-  if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && geminiKey) {
+  // Tier 2: OpenRouter backup with meta-llama/llama-3.3-70b-instruct (Ultra-fast Uyghur comprehension)
+  if (!englishText && openRouterKey) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      const transRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are an expert Uyghur-to-English translator for AI image generation. Translate this Uyghur image prompt into English in one or two descriptive sentences. Return ONLY the English translation, without markdown, without quotes, without introductory text:\n${prompt}`,
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
-      clearTimeout(timeoutId);
-
-      if (transRes.ok) {
-        const transJson = await transRes.json();
-        const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        const lines = raw.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#') && !l.startsWith('*') && !l.startsWith('>'));
-        const candidate = lines.find((l: string) => !/[\u0600-\u06FF]/.test(l) && l.length > 5) || raw;
-        const cleaned = candidate
-          .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
-          .replace(/^(Direct Translation:|Translation:)\s*/i, '')
-          .trim();
-        if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
-          englishText = cleaned;
-          console.log('Gemini fallback prompt translation success:', englishText);
-        }
-      }
-    } catch (err) {
-      console.warn('Gemini fallback translation error/timeout:', err);
-    }
-  }
-
-  // Tier 4: Fallback to Llama 3.3 on OpenRouter
-  if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && openRouterKey) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const timeoutId = setTimeout(() => controller.abort(), 5500);
 
       const llamaRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -183,14 +108,8 @@ async function translatePromptToEnglish(
         body: JSON.stringify({
           model: 'meta-llama/llama-3.3-70b-instruct',
           messages: [
-            {
-              role: 'system',
-              content: 'Translate the following Uyghur description directly into a concise visual English prompt for image generation. Return ONLY the English prompt, no markdown, no quotes, no conversational filler.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: prompt },
           ],
         }),
       });
@@ -198,21 +117,63 @@ async function translatePromptToEnglish(
 
       if (llamaRes.ok) {
         const llamaData = await llamaRes.json();
-        const content = llamaData.choices?.[0]?.message?.content?.trim();
-        if (content && !/[\u0600-\u06FF]/.test(content)) {
-          const cleaned = content.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
-          if (cleaned.length > 3) {
-            englishText = cleaned;
-            console.log('Llama fallback prompt translation success:', englishText);
-          }
+        const content = llamaData.choices?.[0]?.message?.content?.trim() || '';
+        const parsed = extractCleanEnglish(content);
+        if (parsed) {
+          englishText = parsed;
+          console.log('[Backup: Llama 3.3] translation success:', englishText);
         }
       }
     } catch (err) {
-      console.warn('Llama fallback translation error:', err);
+      console.warn('[Backup: Llama 3.3] error:', err);
     }
   }
 
-  return englishText || prompt.trim();
+  // Tier 3: OpenRouter with google/gemini-2.5-flash as guaranteed backup
+  if (!englishText && openRouterKey && primaryModel !== 'google/gemini-2.5-flash') {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5500);
+
+      const geminiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://uyghur-ai.local',
+          'X-Title': 'Uyghur AI Image Studio',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemInstructions },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      });
+      clearTimeout(timeoutId);
+
+      if (geminiRes.ok) {
+        const geminiData = await geminiRes.json();
+        const content = geminiData.choices?.[0]?.message?.content?.trim() || '';
+        const parsed = extractCleanEnglish(content);
+        if (parsed) {
+          englishText = parsed;
+          console.log('[Backup: Gemini 2.5 Flash] translation success:', englishText);
+        }
+      }
+    } catch (err) {
+      console.warn('[Backup: Gemini 2.5 Flash] error:', err);
+    }
+  }
+
+  // Strictly verify translation - NEVER allow raw Uyghur text to reach the image engine!
+  if (!englishText || /[\u0600-\u06FF]/.test(englishText)) {
+    throw new Error('تەرجىمە ماتورى جاۋاب قايتۇرمىدى، قايتا بېسىپ سىناپ بېقىڭ');
+  }
+
+  return englishText;
 }
 
 export async function POST(req: NextRequest) {

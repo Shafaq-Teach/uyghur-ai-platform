@@ -113,44 +113,31 @@ Strictly write in fluent, natural, poetic Uyghur.`;
 
     // 2. Translate Product Info into Clean English for Visual Diffusion using 🌐 Translate model
     let englishVisualPhrase = '';
-    const isNativeGemini = !effectiveTranslateModel.includes('/') && effectiveTranslateModel.toLowerCase().includes('gemini');
 
-    if (isNativeGemini && effectiveGeminiKey) {
-      try {
-        const directModel = effectiveTranslateModel.includes('latest') ? effectiveTranslateModel : 'gemini-flash-latest';
-        const transRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${directModel}:generateContent?key=${effectiveGeminiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Translate the product name and description into a concise English phrase suitable for luxury commercial product cinematography. Return ONLY the English phrase, no markdown, no quotes:\n${productName}. ${productDesc || ''}`
-              }]
-            }]
-          })
-        });
-        if (transRes.ok) {
-          const transJson = await transRes.json();
-          const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-          if (raw && !/[\u0600-\u06FF]/.test(raw)) {
-            englishVisualPhrase = raw.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
-          }
-        }
-      } catch (err) {
-        console.warn('Gemini Direct visual translation failed', err);
-      }
+    // Normalize model
+    let videoTransModel = effectiveTranslateModel || 'google/gemini-2.5-flash';
+    if (!videoTransModel.includes('/') && videoTransModel.toLowerCase().includes('gemini')) {
+      videoTransModel = `google/${videoTransModel}`;
+    }
+    if (videoTransModel === 'google/gemini-3.8-flash' || videoTransModel === 'gemini-3.8-flash') {
+      videoTransModel = 'google/gemini-2.5-flash';
     }
 
-    if (!englishVisualPhrase && effectiveOpenRouterKey) {
+    if (effectiveOpenRouterKey) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         const transRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${effectiveOpenRouterKey}`,
             'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Video Studio',
           },
+          signal: controller.signal,
           body: JSON.stringify({
-            model: effectiveTranslateModel,
+            model: videoTransModel,
             messages: [
               {
                 role: 'system',
@@ -163,6 +150,7 @@ Strictly write in fluent, natural, poetic Uyghur.`;
             ]
           })
         });
+        clearTimeout(timeoutId);
         if (transRes.ok) {
           const transJson = await transRes.json();
           const text = transJson.choices?.[0]?.message?.content?.trim() || '';
