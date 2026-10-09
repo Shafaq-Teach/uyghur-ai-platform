@@ -11,11 +11,11 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
 
   let englishText = '';
 
-  // Tier 1: Try OpenRouter (blazing fast, highly accurate Uyghur translation)
+  // Tier 1: OpenRouter with google/gemini-2.5-flash (fast, state-of-the-art Uyghur comprehension)
   if (openRouterKey) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
 
       const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -31,7 +31,7 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
           messages: [
             {
               role: 'system',
-              content: 'You are an expert Uyghur-to-English translator for AI image generation (Flux/Stable Diffusion). Translate the Uyghur prompt into a vivid, descriptive, high-quality English image prompt. Return ONLY the direct English translation without preamble, without markdown, without quotes.',
+              content: 'You are an expert Uyghur-to-English translator for AI image generation (Flux.1 / Midjourney). Translate the Uyghur prompt into a vivid, descriptive, high-quality English visual prompt. Return ONLY the direct English translation without preamble, without markdown, without quotes, without introductory text.',
             },
             {
               role: 'user',
@@ -46,8 +46,14 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
         const orData = await orRes.json();
         const content = orData.choices?.[0]?.message?.content?.trim();
         if (content && !/[\u0600-\u06FF]/.test(content)) {
-          englishText = content.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '');
-          console.log('OpenRouter prompt translation success:', englishText);
+          const cleaned = content
+            .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
+            .replace(/^(Direct Translation:|Translation:)\s*/i, '')
+            .trim();
+          if (cleaned.length > 3) {
+            englishText = cleaned;
+            console.log('OpenRouter Gemini prompt translation success:', englishText);
+          }
         }
       }
     } catch (err) {
@@ -55,14 +61,14 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
     }
   }
 
-  // Tier 2: Try Google Gemini direct if available
+  // Tier 2: Google Gemini direct API (gemini-flash-latest)
   if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && geminiKey) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const transRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -72,7 +78,7 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
               {
                 parts: [
                   {
-                    text: `Translate this Uyghur image prompt into English for image generation. Return ONLY the translation in one concise English sentence, without markdown, without quotes, without introductory text:\n${prompt}`,
+                    text: `You are an expert Uyghur-to-English translator for AI image generation. Translate this Uyghur image prompt into English in one or two descriptive sentences. Return ONLY the English translation, without markdown, without quotes, without introductory text:\n${prompt}`,
                   },
                 ],
               },
@@ -87,10 +93,13 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
         const raw = transJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
         const lines = raw.split('\n').map((l: string) => l.trim()).filter((l: string) => l && !l.startsWith('#') && !l.startsWith('*') && !l.startsWith('>'));
         const candidate = lines.find((l: string) => !/[\u0600-\u06FF]/.test(l) && l.length > 5) || raw;
-        const cleaned = candidate.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '');
+        const cleaned = candidate
+          .replace(/^["'`*>\s]+|["'`*>\s]+$/g, '')
+          .replace(/^(Direct Translation:|Translation:)\s*/i, '')
+          .trim();
         if (cleaned && !/[\u0600-\u06FF]/.test(cleaned)) {
           englishText = cleaned;
-          console.log('Gemini prompt translation success:', englishText);
+          console.log('Gemini Direct prompt translation success:', englishText);
         }
       }
     } catch (err) {
@@ -98,22 +107,50 @@ async function translatePromptToEnglish(prompt: string, geminiKey?: string, open
     }
   }
 
-  // Tier 3: MyMemory API fallback
-  if (!englishText || /[\u0600-\u06FF]/.test(englishText)) {
+  // Tier 3: OpenRouter fallback with meta-llama/llama-3.3-70b-instruct
+  if ((!englishText || /[\u0600-\u06FF]/.test(englishText)) && openRouterKey) {
     try {
-      const mmRes = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(prompt)}&langpair=ug|en`
-      );
-      if (mmRes.ok) {
-        const mmData = await mmRes.json();
-        const mmText = mmData.responseData?.translatedText?.trim();
-        if (mmText && !/[\u0600-\u06FF]/.test(mmText)) {
-          englishText = mmText;
-          console.log('MyMemory prompt translation success:', englishText);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+      const llamaRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://uyghur-ai.local',
+          'X-Title': 'Uyghur AI Image Studio',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'meta-llama/llama-3.3-70b-instruct',
+          messages: [
+            {
+              role: 'system',
+              content: 'Translate the following Uyghur description directly into a concise visual English prompt for image generation. Return ONLY the English prompt, no markdown, no quotes, no conversational filler.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        }),
+      });
+      clearTimeout(timeoutId);
+
+      if (llamaRes.ok) {
+        const llamaData = await llamaRes.json();
+        const content = llamaData.choices?.[0]?.message?.content?.trim();
+        if (content && !/[\u0600-\u06FF]/.test(content)) {
+          const cleaned = content.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
+          if (cleaned.length > 3) {
+            englishText = cleaned;
+            console.log('Llama 3.3 prompt translation success:', englishText);
+          }
         }
       }
     } catch (err) {
-      console.warn('MyMemory translation error:', err);
+      console.warn('Llama 3.3 translation error:', err);
     }
   }
 
@@ -224,10 +261,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. High-Quality Neural AI Image Generation (Real AI Diffusion matching exact prompt)
+    // 3. High-Quality Neural AI Image Generation (Flux.1 Diffusion matching exact prompt)
     const seed = Math.floor(Math.random() * 1000000);
-    const cleanPrompt = enrichedPrompt.replace(/['"`]/g, '').replace(/[^a-zA-Z0-9, ]+/g, ' ').replace(/\s+/g, ' ').trim();
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${dims.width}&height=${dims.height}&seed=${seed}&nologo=true`;
+    // Sanitize newlines and unsafe characters without wiping out non-English content
+    const cleanPrompt = enrichedPrompt.replace(/[\r\n\t]+/g, ' ').replace(/[#%&?/\\]/g, ' ').trim();
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?model=flux&width=${dims.width}&height=${dims.height}&seed=${seed}&nologo=true`;
 
     return NextResponse.json({
       imageUrl: pollinationsUrl,
