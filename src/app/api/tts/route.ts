@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyUserAndDeductCoins } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
@@ -76,6 +77,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'تېكىست كىرگۈزۈلمىدى' }, { status: 400 });
     }
 
+    const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
+    const authResult = await verifyUserAndDeductCoins(req, 15, userProvidedKey);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error, message: authResult.message },
+        { status: authResult.status || 401 }
+      );
+    }
+
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
     const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
 
@@ -97,7 +107,7 @@ export async function POST(req: NextRequest) {
           if (part?.inlineData?.data) {
             const mimeType = part.inlineData.mimeType || 'audio/wav';
             const audioUrl = `data:${mimeType};base64,${part.inlineData.data}`;
-            return NextResponse.json({ audioUrl, format: 'wav', model: cleanModel });
+            return NextResponse.json({ audioUrl, format: 'wav', model: cleanModel, remainingCoins: authResult.remainingCoins });
           }
         }
       } catch (gemErr) {
@@ -230,6 +240,7 @@ export async function POST(req: NextRequest) {
       model: 'openai/gpt-audio-mini',
       speed,
       pitch,
+      remainingCoins: authResult.remainingCoins,
     });
   } catch (error: any) {
     console.error('TTS API Route Error:', error);

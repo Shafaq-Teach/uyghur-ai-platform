@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyUserAndDeductCoins } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
@@ -22,6 +23,15 @@ export async function POST(req: NextRequest) {
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: 'تېكىست كىرگۈزۈلمىدى' }, { status: 400 });
+    }
+
+    const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
+    const authResult = await verifyUserAndDeductCoins(req, 15, userProvidedKey);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error, message: authResult.message },
+        { status: authResult.status || 401 }
+      );
     }
 
     const cleanOpenRouterKey = (openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
@@ -159,7 +169,7 @@ CRITICAL RULES:
           if (gemRes.ok) {
             const gemData = await gemRes.json();
             const translation = gemData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-            return NextResponse.json({ translation });
+            return NextResponse.json({ translation, remainingCoins: authResult.remainingCoins });
           }
         }
       }
@@ -173,7 +183,7 @@ CRITICAL RULES:
 
       const data = await response.json();
       const translation = data.choices?.[0]?.message?.content?.trim() || '';
-      return NextResponse.json({ translation });
+      return NextResponse.json({ translation, remainingCoins: authResult.remainingCoins });
     }
 
     // Direct Gemini branch
@@ -254,7 +264,7 @@ CRITICAL RULES:
         if (orFallback.ok) {
           const orData = await orFallback.json();
           const translation = orData.choices?.[0]?.message?.content?.trim() || '';
-          return NextResponse.json({ translation });
+          return NextResponse.json({ translation, remainingCoins: authResult.remainingCoins });
         }
       }
 
@@ -267,7 +277,7 @@ CRITICAL RULES:
 
       const data = await response.json();
       const translation = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-      return NextResponse.json({ translation });
+      return NextResponse.json({ translation, remainingCoins: authResult.remainingCoins });
     }
 
     return NextResponse.json({ error: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 400 });

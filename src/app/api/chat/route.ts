@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyUserAndDeductCoins } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
@@ -16,6 +17,15 @@ export async function POST(req: NextRequest) {
       openRouterApiKey, 
       geminiApiKey 
     } = body;
+
+    const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
+    const authResult = await verifyUserAndDeductCoins(req, 15, userProvidedKey);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error, message: authResult.message },
+        { status: authResult.status || 401 }
+      );
+    }
 
     const cleanOpenRouterKey = (openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
     const cleanGeminiKey = (geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY || '').trim();
@@ -116,7 +126,7 @@ export async function POST(req: NextRequest) {
           if (gemRes.ok) {
             const gemData = await gemRes.json();
             const reply = gemData.candidates?.[0]?.content?.parts?.[0]?.text || 'جاۋاب ھاسىل بولمىدى.';
-            return NextResponse.json({ reply });
+            return NextResponse.json({ reply, remainingCoins: authResult.remainingCoins });
           }
         }
       }
@@ -160,7 +170,7 @@ export async function POST(req: NextRequest) {
 
       const data = await response.json();
       const reply = data.choices?.[0]?.message?.content || 'جاۋاب قۇرۇق كەلدى.';
-      return NextResponse.json({ reply });
+      return NextResponse.json({ reply, remainingCoins: authResult.remainingCoins });
     }
 
     // Direct Gemini provider
@@ -279,7 +289,7 @@ export async function POST(req: NextRequest) {
 
       const data = await response.json();
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'جاۋاب ھاسىل بولمىدى.';
-      return NextResponse.json({ reply });
+      return NextResponse.json({ reply, remainingCoins: authResult.remainingCoins });
     }
 
     return NextResponse.json({ error: 'TEMPORARY_ERROR', message: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.' }, { status: 400 });

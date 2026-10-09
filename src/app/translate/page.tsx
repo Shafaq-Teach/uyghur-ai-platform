@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   ArrowLeftRight, 
   Copy, 
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function TranslatePage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
   const [sourceText, setSourceText] = useState('');
@@ -67,18 +68,17 @@ export default function TranslatePage() {
     if (!requireAuth()) return;
     if (!sourceText.trim() || loading) return;
 
-    const coinCheck = await deductCoins(15);
-    if (!coinCheck.success) {
-      setTranslatedText(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).');
+    const hasOwnKey = Boolean((settings.openRouterApiKey || settings.geminiApiKey || '').trim());
+    if (!hasOwnKey && (user?.coins ?? 0) < 15) {
+      setTranslatedText(`تەڭگىڭىز يېتەرلىك ئەمەس! تەرجىمىگە 15 تەڭگە كېتىدۇ، سىزدە پەقەت ${user?.coins ?? 0} تەڭگە قالدى.`);
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch('/api/translate', {
+      const response = await apiFetch('/api/translate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: sourceText.trim(),
           sourceLang,
@@ -93,7 +93,11 @@ export default function TranslatePage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'تەرجىمە قىلىش مەغلۇپ بولدى');
+      if (!response.ok) throw new Error(data.message || data.error || 'تەرجىمە قىلىش مەغلۇپ بولدى');
+
+      if (typeof data.remainingCoins === 'number') {
+        updateUserCoins(data.remainingCoins);
+      }
 
       const result = data.translation || '';
       setTranslatedText(result);

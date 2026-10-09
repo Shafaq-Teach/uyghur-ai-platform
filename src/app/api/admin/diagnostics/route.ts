@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyAdmin } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdmin(req);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error || 'باشقۇرغۇچى كىملىكى تەلەپ قىلىنىدۇ' }, { status: 401 });
+    }
+
     const config = await getSystemConfigServer();
 
     // 1. Supabase Ping

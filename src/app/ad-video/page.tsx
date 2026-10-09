@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia, downloadText, recordAndDownloadVideo } from '@/lib/download';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   Video, 
   Upload, 
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function AdVideoPage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
   const [productName, setProductName] = useState('ئالىي دەرىجىلىك تەبىئىي زەيتۇن مېيى');
   const [productDesc, setProductDesc] = useState('شېشە بوتۇلكىدىكى ئالتۇن رەڭلىك تەبىئىي سوغۇق پرېسلانغان زەيتۇن مېيى، ئۈستەل ئۈستىدە يورۇقلۇق نۇرى قايتىپ تۇرىدۇ.');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -97,9 +98,9 @@ export default function AdVideoPage() {
     if (!requireAuth()) return;
     if (!productName.trim() || loading) return;
 
-    const coinCheck = await deductCoins(25);
-    if (!coinCheck.success) {
-      setError(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (25 تەڭگە كېتىدۇ)');
+    const hasOwnKey = Boolean((settings.openRouterApiKey || settings.geminiApiKey || '').trim());
+    if (!hasOwnKey && (user?.coins ?? 0) < 25) {
+      setError(`تەڭگىڭىز يېتەرلىك ئەمەس! سىن ھاسىل قىلىشقا 25 تەڭگە كېتىدۇ، سىزدە پەقەت ${user?.coins ?? 0} تەڭگە قالدى.`);
       return;
     }
 
@@ -109,9 +110,8 @@ export default function AdVideoPage() {
     setCurrentSecond(0);
 
     try {
-      const response = await fetch('/api/video', {
+      const response = await apiFetch('/api/video', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productImage: imagePreview,
           productName,
@@ -128,7 +128,11 @@ export default function AdVideoPage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'ۋىدېيو ھاسىل قىلىش مەغلۇپ بولدى');
+      if (!response.ok) throw new Error(data.message || data.error || 'ۋىدېيو ھاسىل قىلىش مەغلۇپ بولدى');
+
+      if (typeof data.remainingCoins === 'number') {
+        updateUserCoins(data.remainingCoins);
+      }
 
       setResult(data);
       // Auto-start cinematic preview

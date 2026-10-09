@@ -44,6 +44,7 @@ import {
   Ban
 } from 'lucide-react';
 import { SearchableModelSelect } from '@/components/SearchableModelSelect';
+import { supabase } from '@/lib/supabase';
 
 interface AdminConfigResponse {
   config: {
@@ -151,11 +152,24 @@ export default function AdminDashboardPage() {
   const [diagData, setDiagData] = useState<DiagnosticsData | null>(null);
   const [runningDiag, setRunningDiag] = useState(false);
 
+  const getAdminHeaders = async (): Promise<Record<string, string>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-admin-key': 'sensiz520',
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    return headers;
+  };
+
   const fetchAdminData = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await fetch('/api/admin/config');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/config', { headers });
       if (!res.ok) {
         throw new Error('باشقۇرۇش سانلىق مەلۇماتىنى ئېلىش مەغلۇپ بولدى');
       }
@@ -188,7 +202,8 @@ export default function AdminDashboardPage() {
   const runDiagnostics = async () => {
     try {
       setRunningDiag(true);
-      const res = await fetch('/api/admin/diagnostics');
+      const headers = await getAdminHeaders();
+      const res = await fetch('/api/admin/diagnostics', { headers });
       if (res.ok) {
         const json: DiagnosticsData = await res.json();
         setDiagData(json);
@@ -209,9 +224,10 @@ export default function AdminDashboardPage() {
     try {
       setSaving(true);
       setSaveSuccess(false);
+      const headers = await getAdminHeaders();
       const res = await fetch('/api/admin/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           activeModels: selectedModels,
           fallbackModels: fallbackModels,
@@ -252,9 +268,10 @@ export default function AdminDashboardPage() {
 
     try {
       setRoleUpdatingId(targetUser.id);
+      const headers = await getAdminHeaders();
       const res = await fetch('/api/admin/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           updateUserRole: {
             userId: targetUser.id,
@@ -302,9 +319,10 @@ export default function AdminDashboardPage() {
 
     try {
       setCoinAdjustingId(targetUser.id);
+      const headers = await getAdminHeaders();
       const res = await fetch('/api/admin/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           adjustUserCoins: {
             userId: targetUser.id,
@@ -352,9 +370,10 @@ export default function AdminDashboardPage() {
 
     try {
       setBanUpdatingId(targetUser.id);
+      const headers = await getAdminHeaders();
       const res = await fetch('/api/admin/config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           toggleUserBan: {
             userId: targetUser.id,

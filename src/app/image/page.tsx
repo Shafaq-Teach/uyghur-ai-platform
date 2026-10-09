@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia } from '@/lib/download';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   Sparkles, 
   Download, 
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export default function ImagePage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [style, setStyle] = useState('photorealistic');
@@ -56,9 +57,9 @@ export default function ImagePage() {
     if (!requireAuth()) return;
     if (!prompt.trim() || loading || imageLoading) return;
 
-    const coinCheck = await deductCoins(25);
-    if (!coinCheck.success) {
-      setError(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (25 تەڭگە كېتىدۇ)');
+    const hasOwnKey = Boolean((settings.openRouterApiKey || settings.geminiApiKey || '').trim());
+    if (!hasOwnKey && (user?.coins ?? 0) < 25) {
+      setError(`تەڭگىڭىز يېتەرلىك ئەمەس! رەسىم ھاسىل قىلىشقا 25 تەڭگە كېتىدۇ، سىزدە پەقەت ${user?.coins ?? 0} تەڭگە قالدى.`);
       return;
     }
 
@@ -68,9 +69,8 @@ export default function ImagePage() {
     setError('');
 
     try {
-      const response = await fetch('/api/image', {
+      const response = await apiFetch('/api/image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: prompt.trim(),
           aspectRatio,
@@ -85,7 +85,11 @@ export default function ImagePage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'رەسىم ھاسىل قىلىش مەغلۇپ بولدى');
+      if (!response.ok) throw new Error(data.message || data.error || 'رەسىم ھاسىل قىلىش مەغلۇپ بولدى');
+
+      if (typeof data.remainingCoins === 'number') {
+        updateUserCoins(data.remainingCoins);
+      }
 
       setResultImage(data.imageUrl);
       setEnhancedPrompt(data.enhancedPrompt || prompt);

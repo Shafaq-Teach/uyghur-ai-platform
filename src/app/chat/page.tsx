@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   Send, 
   Trash2, 
@@ -24,7 +25,7 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -84,14 +85,14 @@ export default function ChatPage() {
     if (!requireAuth()) return;
     if (!input.trim() || loading) return;
 
-    const coinCheck = await deductCoins(15);
-    if (!coinCheck.success) {
+    const hasOwnKey = Boolean((settings.openRouterApiKey || settings.geminiApiKey || '').trim());
+    if (!hasOwnKey && (user?.coins ?? 0) < 15) {
       setMessages((prev) => [
         ...prev,
         {
           id: 'err-' + Date.now(),
           role: 'assistant',
-          content: coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).',
+          content: `تەڭگىڭىز يېتەرلىك ئەمەس! بۇ مەشغۇلاتقا 15 تەڭگە كېتىدۇ، سىزدە پەقەت ${user?.coins ?? 0} تەڭگە قالدى.`,
           timestamp: Date.now(),
         },
       ]);
@@ -111,9 +112,8 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await apiFetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           model: settings.featureModels.chat,
@@ -131,11 +131,15 @@ export default function ChatPage() {
           {
             id: 'err-' + Date.now(),
             role: 'assistant',
-            content: 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
+            content: data.message || data.error || 'ۋاقىتلىق خاتالىق كۆرۈلدى، قايتا سىناپ بېقىڭ.',
             timestamp: Date.now(),
           },
         ]);
         return;
+      }
+
+      if (typeof data.remainingCoins === 'number') {
+        updateUserCoins(data.remainingCoins);
       }
 
       const assistantMsg: ChatMessage = {

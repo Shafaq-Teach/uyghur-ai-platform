@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { invalidateSystemConfigCache } from '@/lib/serverConfig';
+import { verifyAdmin } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdmin(req);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error || 'باشقۇرغۇچى كىملىكى تەلەپ قىلىنىدۇ' }, { status: 401 });
+    }
     // 1. Fetch system_config
     const { data: config, error: configError } = await supabase
       .from('system_config')
@@ -128,6 +133,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyAdmin(req);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error || 'باشقۇرغۇچى كىملىكى تەلەپ قىلىنىدۇ' }, { status: 401 });
+    }
+
     const body = await req.json();
 
     // Handle user role update

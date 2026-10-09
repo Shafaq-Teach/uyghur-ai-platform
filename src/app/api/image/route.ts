@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyUserAndDeductCoins } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
@@ -146,6 +147,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt كىرگۈزۈلمىدى' }, { status: 400 });
     }
 
+    const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
+    const authResult = await verifyUserAndDeductCoins(req, 25, userProvidedKey);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error, message: authResult.message },
+        { status: authResult.status || 401 }
+      );
+    }
+
     const clientORKey = (openRouterApiKey || '').trim();
     const serverMasterORKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
 
@@ -225,6 +235,7 @@ export async function POST(req: NextRequest) {
                 aspectRatio,
                 model,
                 translateModel: effectiveTranslateModel,
+                remainingCoins: authResult.remainingCoins,
               });
             }
           } else {
@@ -253,6 +264,7 @@ export async function POST(req: NextRequest) {
       aspectRatio,
       model: model || 'black-forest-labs/flux-1-schnell',
       translateModel: effectiveTranslateModel,
+      remainingCoins: authResult.remainingCoins,
     });
   } catch (error: any) {
     console.error('Image API Error:', error);

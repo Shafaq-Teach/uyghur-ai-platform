@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { AppUpdateManager } from '@/components/AppUpdateManager';
+import { OfflineNotice } from '@/components/OfflineNotice';
 
 export const metadata: Metadata = {
   title: 'سۈنئىي ئىدراك سۇپىسى — Uyghur AI Platform',
@@ -94,6 +95,7 @@ export default function RootLayout({
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[320px] bg-gradient-to-b from-sky-300/15 via-teal-200/10 to-transparent dark:from-indigo-500/10 dark:via-purple-500/5 blur-3xl pointer-events-none -z-10 overflow-hidden" />
         
         <AppProvider>
+          <OfflineNotice />
           <Header />
           <PWAInstallPrompt />
           <AppUpdateManager />

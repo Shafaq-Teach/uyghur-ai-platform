@@ -39,6 +39,7 @@ interface AppContextType {
   closeRegisterPrompt: () => void;
   requireAuth: () => boolean;
   refreshUserCoins: () => Promise<number>;
+  updateUserCoins: (coins: number) => void;
   deductCoins: (cost: number) => Promise<{ success: boolean; remaining?: number; error?: string }>;
 }
 
@@ -220,6 +221,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return user?.coins ?? 0;
   }, [user?.id, user?.coins]);
 
+  const updateUserCoins = useCallback((coins: number) => {
+    if (typeof coins === 'number') {
+      setUser((prev) => (prev ? { ...prev, coins } : null));
+    }
+  }, []);
+
   const deductCoins = useCallback(
     async (cost: number): Promise<{ success: boolean; remaining?: number; error?: string }> => {
       if (!user) {
@@ -307,16 +314,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoadingUser(false);
         await loadUserData(session.user.id);
       } else {
-        let preview: any = null;
-        try {
-          const item = typeof window !== 'undefined' ? localStorage.getItem('uyghur_ai_admin_preview') : null;
-          if (item) preview = JSON.parse(item);
-        } catch (_) {}
-        if (preview && preview.role === 'admin') {
-          setUser(preview);
-        } else {
-          setUser(null);
-        }
+        setUser(null);
         setIsLoadingUser(false);
       }
     });
@@ -664,6 +662,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         closeRegisterPrompt,
         requireAuth,
         refreshUserCoins,
+        updateUserCoins,
         deductCoins,
       }}
     >

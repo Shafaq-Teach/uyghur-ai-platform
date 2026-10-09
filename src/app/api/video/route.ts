@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSystemConfigServer } from '@/lib/serverConfig';
+import { verifyUserAndDeductCoins } from '@/lib/serverAuth';
 
 export const runtime = 'edge';
 
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
 
     if (!productName && !productImage) {
       return NextResponse.json({ error: 'مەھسۇلات نامى ياكى رەسىمى كىرگۈزۈلمىدى' }, { status: 400 });
+    }
+
+    const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
+    const authResult = await verifyUserAndDeductCoins(req, 25, userProvidedKey);
+    if (!authResult.authorized) {
+      return NextResponse.json(
+        { error: authResult.error, message: authResult.message },
+        { status: authResult.status || 401 }
+      );
     }
 
     const clientORKey = (openRouterApiKey || '').trim();
@@ -198,6 +208,7 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       posterImageUrl,
       videoUrl: posterImageUrl,
       humanDetectionStatus: 'Passed (No humans detected. Strictly product-only)',
+      remainingCoins: authResult.remainingCoins,
     });
   } catch (error: any) {
     console.error('Video API Error:', error);

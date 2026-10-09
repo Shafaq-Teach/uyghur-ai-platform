@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { downloadMedia } from '@/lib/download';
+import { apiFetch } from '@/lib/apiClient';
 import { 
   Volume2, 
   Play, 
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export default function TtsPage() {
-  const { t, isRtl, settings, addHistoryItem, requireAuth, deductCoins } = useApp();
+  const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
   const [text, setText] = useState('سۈنئىي ئىدراك تور بېكىتىگە كەلگىنىڭىزنى قىزغىن قارشى ئالىمىز! بۈگۈن سىزگە نېمە ياردەم قىلاي؟');
   const [voice, setVoice] = useState('female1');
   const [speed, setSpeed] = useState(1.0);
@@ -48,9 +49,9 @@ export default function TtsPage() {
     if (!requireAuth()) return;
     if (!text.trim() || loading) return;
 
-    const coinCheck = await deductCoins(15);
-    if (!coinCheck.success) {
-      setError(coinCheck.error || 'تەڭگىڭىز يېتەرلىك ئەمەس (15 تەڭگە كېتىدۇ).');
+    const hasOwnKey = Boolean((settings.openRouterApiKey || settings.geminiApiKey || '').trim());
+    if (!hasOwnKey && (user?.coins ?? 0) < 15) {
+      setError(`تەڭگىڭىز يېتەرلىك ئەمەس! ئاۋاز ھاسىل قىلىشقا 15 تەڭگە كېتىدۇ، سىزدە پەقەت ${user?.coins ?? 0} تەڭگە قالدى.`);
       return;
     }
 
@@ -58,9 +59,8 @@ export default function TtsPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/tts', {
+      const response = await apiFetch('/api/tts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: text.trim(),
           voice,
@@ -75,7 +75,11 @@ export default function TtsPage() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'ئاۋاز ھاسىل قىلىش مەغلۇپ بولدى');
+        throw new Error(data.message || data.error || 'ئاۋاز ھاسىل قىلىش مەغلۇپ بولدى');
+      }
+
+      if (typeof data.remainingCoins === 'number') {
+        updateUserCoins(data.remainingCoins);
       }
 
       if (data.audioUrl) {
