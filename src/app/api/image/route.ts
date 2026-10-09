@@ -204,7 +204,8 @@ export async function POST(req: NextRequest) {
         if (response.ok) {
           const data = await response.json();
           const choice = data.choices?.[0];
-          const imageUrl = choice?.message?.images?.[0]?.url || choice?.message?.content;
+          const rawImg = choice?.message?.images?.[0];
+          const imageUrl = rawImg?.image_url?.url || rawImg?.url || choice?.message?.content;
           if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('data:image'))) {
             return NextResponse.json({
               imageUrl,
