@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'مەھسۇلات نامى ياكى رەسىمى كىرگۈزۈلمىدى' }, { status: 400 });
     }
 
-    const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
-    const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+    const clientORKey = (openRouterApiKey || '').trim();
+    const serverMasterORKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
+    const keysToTry = [clientORKey, serverMasterORKey].filter(Boolean);
     const effectiveTranslateModel = reqTranslateModel || serverConfig.activeModels?.translate || 'google/gemini-2.5-flash';
 
     // Strict No-Human Enforcement Layer
@@ -73,18 +74,19 @@ Structure your response clearly with:
 
 Strictly write in fluent, natural, poetic Uyghur.`;
 
-    if (effectiveOpenRouterKey) {
+    for (const key of keysToTry) {
+      if (storyboard) break;
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+            'Authorization': `Bearer ${key}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://uyghur-ai.local',
             'X-Title': 'Uyghur AI Video Studio',
           },
           body: JSON.stringify({
-            model: serverConfig.activeModels?.chat || 'google/gemini-3.8-flash',
+            model: serverConfig.activeModels?.chat || 'google/gemini-2.5-flash',
             messages: [
               { role: 'user', content: storyboardPrompt }
             ],
@@ -94,6 +96,9 @@ Strictly write in fluent, natural, poetic Uyghur.`;
         if (response.ok) {
           const data = await response.json();
           storyboard = data.choices?.[0]?.message?.content || '';
+          if (storyboard) break;
+        } else if (response.status === 401 || response.status === 402) {
+          continue; // try next key
         }
       } catch (e) {
         console.warn('OpenRouter storyboard generation failed', e);
@@ -123,14 +128,15 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       videoTransModel = 'google/gemini-2.5-flash';
     }
 
-    if (effectiveOpenRouterKey) {
+    for (const key of keysToTry) {
+      if (englishVisualPhrase) break;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
         const transRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+            'Authorization': `Bearer ${key}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://uyghur-ai.local',
             'X-Title': 'Uyghur AI Video Studio',
@@ -156,7 +162,10 @@ Strictly write in fluent, natural, poetic Uyghur.`;
           const text = transJson.choices?.[0]?.message?.content?.trim() || '';
           if (text && !/[\u0600-\u06FF]/.test(text)) {
             englishVisualPhrase = text.replace(/^["'`*>\s]+|["'`*>\s]+$/g, '').trim();
+            if (englishVisualPhrase) break;
           }
+        } else if (transRes.status === 401 || transRes.status === 402) {
+          continue; // try next key
         }
       } catch (err) {
         console.warn('Visual phrase translation failed', err);

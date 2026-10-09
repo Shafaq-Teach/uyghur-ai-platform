@@ -6,8 +6,8 @@ export const runtime = 'edge';
 async function translatePromptToEnglish(
   prompt: string,
   translateModel: string,
-  geminiKey?: string,
-  openRouterKey?: string
+  clientOpenRouterKey?: string,
+  serverMasterOpenRouterKey?: string
 ): Promise<string> {
   const isUyghurOrNonLatin = /[\u0600-\u06FF]/.test(prompt);
   if (!isUyghurOrNonLatin) {
@@ -21,7 +21,6 @@ async function translatePromptToEnglish(
   if (!primaryModel.includes('/') && primaryModel.toLowerCase().includes('gemini')) {
     primaryModel = `google/${primaryModel}`;
   }
-  // If the admin or user chose a placeholder/future tag like gemini-3.8-flash, map to high-speed gemini-2.5-flash
   if (primaryModel === 'google/gemini-3.8-flash' || primaryModel === 'gemini-3.8-flash') {
     primaryModel = 'google/gemini-2.5-flash';
   }
@@ -31,10 +30,8 @@ async function translatePromptToEnglish(
     'Translate the following Uyghur description directly into a concise, detailed, high-quality visual English prompt describing the scene, lighting, atmosphere, and key objects. ' +
     'CRITICAL: Return ONLY the English translation in 1 or 2 sentences. Do NOT output any Uyghur text. Do NOT add markdown, explanations, or quotes.';
 
-  // Helper to extract clean English from model response
   const extractCleanEnglish = (raw: string): string => {
     if (!raw) return '';
-    // Look for lines that don't have Arabic/Uyghur script
     const lines = raw
       .split('\n')
       .map((l) => l.trim())
@@ -49,122 +46,68 @@ async function translatePromptToEnglish(
     return !/[\u0600-\u06FF]/.test(cleaned) && cleaned.length > 5 ? cleaned : '';
   };
 
-  // Tier 1: OpenRouter with the configured 🌐 Translate model (Fast: ~2.5s)
-  if (openRouterKey) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6500);
-
-      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://uyghur-ai.local',
-          'X-Title': 'Uyghur AI Image Studio',
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: primaryModel,
-          messages: [
-            { role: 'system', content: systemInstructions },
-            { role: 'user', content: prompt },
-          ],
-        }),
-      });
-      clearTimeout(timeoutId);
-
-      if (orRes.ok) {
-        const orData = await orRes.json();
-        const content = orData.choices?.[0]?.message?.content?.trim() || '';
-        const parsed = extractCleanEnglish(content);
-        if (parsed) {
-          englishText = parsed;
-          console.log(`[Translate Model: ${primaryModel}] translation success:`, englishText);
-        }
-      } else {
-        console.warn(`[Translate Model: ${primaryModel}] OpenRouter status:`, orRes.status);
-      }
-    } catch (err) {
-      console.warn(`[Translate Model: ${primaryModel}] error:`, err);
-    }
+  // Build ordered list of keys to try: client custom key first (if any), then server master key
+  const keysToTry: string[] = [];
+  if (clientOpenRouterKey && clientOpenRouterKey.trim().length > 10) {
+    keysToTry.push(clientOpenRouterKey.trim());
+  }
+  if (serverMasterOpenRouterKey && !keysToTry.includes(serverMasterOpenRouterKey.trim())) {
+    keysToTry.push(serverMasterOpenRouterKey.trim());
   }
 
-  // Tier 2: OpenRouter backup with meta-llama/llama-3.3-70b-instruct (Ultra-fast Uyghur comprehension)
-  if (!englishText && openRouterKey) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5500);
+  const modelsToTry = [
+    primaryModel,
+    'google/gemini-2.5-flash',
+    'meta-llama/llama-3.3-70b-instruct'
+  ].filter((m, i, arr) => arr.indexOf(m) === i);
 
-      const llamaRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://uyghur-ai.local',
-          'X-Title': 'Uyghur AI Image Studio',
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: 'meta-llama/llama-3.3-70b-instruct',
-          messages: [
-            { role: 'system', content: systemInstructions },
-            { role: 'user', content: prompt },
-          ],
-        }),
-      });
-      clearTimeout(timeoutId);
+  for (const key of keysToTry) {
+    if (englishText) break;
 
-      if (llamaRes.ok) {
-        const llamaData = await llamaRes.json();
-        const content = llamaData.choices?.[0]?.message?.content?.trim() || '';
-        const parsed = extractCleanEnglish(content);
-        if (parsed) {
-          englishText = parsed;
-          console.log('[Backup: Llama 3.3] translation success:', englishText);
+    for (const modelName of modelsToTry) {
+      if (englishText) break;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+        const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Image Studio',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              { role: 'system', content: systemInstructions },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        });
+        clearTimeout(timeoutId);
+
+        // If this key is unauthorized, out of credits, or forbidden, break immediately to the next key!
+        if (orRes.status === 401 || orRes.status === 402 || orRes.status === 403) {
+          console.warn(`Key ${key.slice(0, 10)} failed with status ${orRes.status}. Moving to next key.`);
+          break;
         }
-      }
-    } catch (err) {
-      console.warn('[Backup: Llama 3.3] error:', err);
-    }
-  }
 
-  // Tier 3: OpenRouter with google/gemini-2.5-flash as guaranteed backup
-  if (!englishText && openRouterKey && primaryModel !== 'google/gemini-2.5-flash') {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5500);
-
-      const geminiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://uyghur-ai.local',
-          'X-Title': 'Uyghur AI Image Studio',
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemInstructions },
-            { role: 'user', content: prompt },
-          ],
-        }),
-      });
-      clearTimeout(timeoutId);
-
-      if (geminiRes.ok) {
-        const geminiData = await geminiRes.json();
-        const content = geminiData.choices?.[0]?.message?.content?.trim() || '';
-        const parsed = extractCleanEnglish(content);
-        if (parsed) {
-          englishText = parsed;
-          console.log('[Backup: Gemini 2.5 Flash] translation success:', englishText);
+        if (orRes.ok) {
+          const orData = await orRes.json();
+          const content = orData.choices?.[0]?.message?.content?.trim() || '';
+          const parsed = extractCleanEnglish(content);
+          if (parsed) {
+            englishText = parsed;
+            console.log(`[Translate Model: ${modelName}] translation success:`, englishText);
+            break;
+          }
         }
+      } catch (err) {
+        console.warn(`Translation attempt with model ${modelName} error:`, err);
       }
-    } catch (err) {
-      console.warn('[Backup: Gemini 2.5 Flash] error:', err);
     }
   }
 
@@ -203,8 +146,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt كىرگۈزۈلمىدى' }, { status: 400 });
     }
 
-    const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
-    const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+    const clientORKey = (openRouterApiKey || '').trim();
+    const serverMasterORKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
 
     // Use strictly the model configured under 🌐 تەرجىمە (Translate)
     const effectiveTranslateModel = reqTranslateModel || serverConfig.activeModels?.translate || 'google/gemini-2.5-flash';
@@ -232,60 +175,67 @@ export async function POST(req: NextRequest) {
       minimalist: 'minimalist clean design, subtle shadows, elegant composition, muted pastel colors',
     };
 
-    // 1. Automatic Uyghur/Non-Latin -> English Translation using 🌐 Translate model
+    // 1. Automatic Uyghur/Non-Latin -> English Translation using 🌐 Translate model (with client -> master key fallback)
     const englishPrompt = await translatePromptToEnglish(
       prompt,
       effectiveTranslateModel,
-      effectiveGeminiKey,
-      effectiveOpenRouterKey
+      clientORKey,
+      serverMasterORKey
     );
 
     const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
     const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
 
-    // 2. Try OpenRouter FLUX / SD if key is provided and active
-    if (provider === 'openrouter' && effectiveOpenRouterKey) {
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://uyghur-ai.local',
-            'X-Title': 'Uyghur AI Image Studio',
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [
-              {
-                role: 'user',
-                content: enrichedPrompt,
-              },
-            ],
-            modalities: ['image', 'text'],
-          }),
-        });
+    // 2. Try OpenRouter FLUX / SD if key is provided and active (with client -> master key fallback)
+    const keysForImage = [clientORKey, serverMasterORKey].filter(Boolean);
+    if (provider === 'openrouter' && keysForImage.length > 0) {
+      for (const imageKey of keysForImage) {
+        try {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${imageKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://uyghur-ai.local',
+              'X-Title': 'Uyghur AI Image Studio',
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                {
+                  role: 'user',
+                  content: enrichedPrompt,
+                },
+              ],
+              modalities: ['image', 'text'],
+            }),
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          const choice = data.choices?.[0];
-          const rawImg = choice?.message?.images?.[0];
-          const imageUrl = rawImg?.image_url?.url || rawImg?.url || choice?.message?.content;
-          if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('data:image'))) {
-            return NextResponse.json({
-              imageUrl,
-              originalPrompt: prompt,
-              translatedPrompt: englishPrompt,
-              enhancedPrompt: enrichedPrompt,
-              aspectRatio,
-              model,
-            });
+          if (response.ok) {
+            const data = await response.json();
+            const choice = data.choices?.[0];
+            const rawImg = choice?.message?.images?.[0];
+            const imageUrl = rawImg?.image_url?.url || rawImg?.url || choice?.message?.content;
+            if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('data:image'))) {
+              return NextResponse.json({
+                imageUrl,
+                originalPrompt: prompt,
+                translatedPrompt: englishPrompt,
+                enhancedPrompt: enrichedPrompt,
+                aspectRatio,
+                model,
+                translateModel: effectiveTranslateModel,
+              });
+            }
+          } else {
+            console.warn(`OpenRouter image call failed with key ${imageKey.slice(0, 10)} status:`, response.status);
+            if (response.status === 401 || response.status === 402) {
+              continue; // try server master key next
+            }
           }
-        } else {
-          console.warn('OpenRouter image call failed with status:', response.status);
+        } catch (e) {
+          console.warn('OpenRouter image direct call failed', e);
         }
-      } catch (e) {
-        console.warn('OpenRouter image direct call failed', e);
       }
     }
 
