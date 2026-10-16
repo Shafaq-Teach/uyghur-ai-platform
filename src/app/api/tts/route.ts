@@ -138,7 +138,59 @@ export async function POST(req: NextRequest) {
     };
     const targetVoice = voiceMap[voice] || (voice.includes('male') && !voice.includes('fe') ? 'echo' : 'nova');
 
-    // Call exact model configured by administrator via OpenRouter
+    // 2. OpenRouter Specialized Speech API (/api/v1/audio/speech)
+    // Used for specialized TTS models such as google/gemini-3.8-flash-tts, openai/tts-1, etc.
+    if (targetModel.includes('tts') || targetModel.includes('speech')) {
+      try {
+        const speechRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Voice Studio',
+          },
+          body: JSON.stringify({
+            model: targetModel,
+            input: text.trim(),
+            voice: targetVoice,
+          }),
+        });
+
+        if (speechRes.ok) {
+          const contentType = speechRes.headers.get('content-type') || '';
+          const arrayBuf = await speechRes.arrayBuffer();
+          const u8 = new Uint8Array(arrayBuf);
+
+          let finalBase64 = '';
+          let format = 'wav';
+
+          if (contentType.includes('pcm')) {
+            const wavBytes = pcmToWav(u8, 24000, 1, 16);
+            finalBase64 = uint8ArrayToBase64(wavBytes);
+          } else {
+            finalBase64 = uint8ArrayToBase64(u8);
+            format = (contentType.includes('mp3') || contentType.includes('mpeg')) ? 'mp3' : 'wav';
+          }
+
+          const audioUrl = `data:audio/${format};base64,${finalBase64}`;
+          return NextResponse.json({
+            audioUrl,
+            text,
+            voice: targetVoice,
+            model: targetModel,
+            speed,
+            pitch,
+            remainingCoins: authResult.remainingCoins,
+          });
+        }
+      } catch (speechErr) {
+        console.warn('OpenRouter /audio/speech attempt failed:', speechErr);
+      }
+    }
+
+    // 3. OpenRouter Chat-Audio Streaming API (/api/v1/chat/completions with audio modality)
+    // Used for multimodal chat/audio models like openai/gpt-audio-mini, openai/gpt-audio, etc.
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
