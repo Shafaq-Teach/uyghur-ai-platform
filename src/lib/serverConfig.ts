@@ -5,6 +5,7 @@ interface CachedSystemConfig {
   openRouterKey: string;
   geminiKey: string;
   activeModels: FeatureModels;
+  quotaSettings?: any;
   timestamp: number;
 }
 
@@ -35,6 +36,7 @@ export async function getSystemConfigServer() {
           tts: 'openai/tts-1',
           video: 'google/gemini-2.5-flash',
         },
+        quotaSettings: data.quota_settings || {},
         timestamp: now,
       };
       return cachedConfig;
@@ -53,6 +55,7 @@ export async function getSystemConfigServer() {
       tts: 'openai/tts-1',
       video: 'google/gemini-2.5-flash',
     },
+    quotaSettings: {},
     timestamp: now,
   };
 }

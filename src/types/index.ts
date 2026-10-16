@@ -20,6 +20,14 @@ export interface FeatureModels {
 
 export type AppTheme = 'dark' | 'light' | 'system' | 'midnight' | 'warm';
 
+export interface LockedFeatures {
+  chat?: boolean;
+  translate?: boolean;
+  image?: boolean;
+  tts?: boolean;
+  video?: boolean;
+}
+
 export interface AppSettings {
   language: Language;
   theme: AppTheme;
@@ -33,6 +41,7 @@ export interface AppSettings {
     video: AIProvider;
   };
   featureModels: FeatureModels;
+  lockedFeatures?: LockedFeatures;
 }
 
 export interface HistoryItem {
@@ -60,6 +69,7 @@ export interface SystemConfig {
   quotaSettings?: {
     dailyUserLimit: number;
     imageLimit: number;
+    locked_features?: LockedFeatures;
   };
   updatedAt?: string;
 }

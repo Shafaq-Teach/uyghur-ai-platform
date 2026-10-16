@@ -57,8 +57,8 @@ export function FeatureHistorySection({ feature, onReuse }: FeatureHistorySectio
   const [audioProgress, setAudioProgress] = useState<Record<string, { current: number; duration: number }>>({});
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Filter history for this feature only
-  const items = history.filter((h) => h.type === feature);
+  // Filter history for this feature only - strictly keep latest 5 items
+  const items = history.filter((h) => h.type === feature).slice(0, 5);
 
   // Cleanup audio on unmount
   useEffect(() => {

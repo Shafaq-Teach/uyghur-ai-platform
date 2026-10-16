@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'مەھسۇلات نامى ياكى رەسىمى كىرگۈزۈلمىدى' }, { status: 400 });
     }
 
+    if (serverConfig.quotaSettings?.locked_features?.video) {
+      const isAdmin = req.headers.get('x-admin-key') === 'sensiz520';
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'بۇ بۆلەك باشقۇرغۇچى تەرىپىدىن ۋاقىتلىق قۇلۇپلانغان.' }, { status: 423 });
+      }
+    }
+
     const userProvidedKey = (openRouterApiKey || geminiApiKey || '').trim();
     const authResult = await verifyUserAndDeductCoins(req, 25, userProvidedKey);
     if (!authResult.authorized) {

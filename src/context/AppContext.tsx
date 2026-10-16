@@ -62,6 +62,13 @@ const DEFAULT_SETTINGS: AppSettings = {
     tts: 'openai/gpt-audio-mini',
     video: 'google/gemini-2.5-flash',
   },
+  lockedFeatures: {
+    chat: false,
+    translate: false,
+    image: false,
+    tts: false,
+    video: false,
+  },
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -292,9 +299,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loadGlobalSystemModels = async () => {
     try {
-      const { data } = await supabase.from('system_config').select('active_models').eq('id', 'global').single();
-      if (data?.active_models && typeof data.active_models === 'object') {
-        const validModels = { ...data.active_models };
+      const { data } = await supabase.from('system_config').select('active_models, quota_settings').eq('id', 'global').single();
+      if (data) {
+        const validModels = typeof data.active_models === 'object' && data.active_models ? { ...data.active_models } : {};
         // Purge dummy or corrupted model entries
         Object.keys(validModels).forEach((k) => {
           if (!validModels[k] || validModels[k] === 'hacked-model') {
@@ -302,12 +309,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         });
 
+        const locked = (data.quota_settings as any)?.locked_features || {};
+
         setSettings(prev => ({
           ...prev,
           featureModels: {
             ...DEFAULT_SETTINGS.featureModels,
             ...prev.featureModels,
             ...validModels,
+          },
+          lockedFeatures: {
+            chat: false,
+            translate: false,
+            image: false,
+            tts: false,
+            video: false,
+            ...locked,
           }
         }));
       }
@@ -538,7 +555,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: Date.now(),
     };
     setHistory((prev) => {
-      const updated = [newItem, ...prev.slice(0, 99)];
+      // Keep strictly up to 5 latest items for the current feature type, while preserving other features
+      const sameType = prev.filter((h) => h.type === newItem.type);
+      const otherTypes = prev.filter((h) => h.type !== newItem.type);
+      const trimmedSameType = [newItem, ...sameType].slice(0, 5);
+      const updated = [...trimmedSameType, ...otherTypes].sort((a, b) => b.createdAt - a.createdAt);
       try {
         localStorage.setItem('uyghur_ai_history', JSON.stringify(updated));
       } catch (e) {

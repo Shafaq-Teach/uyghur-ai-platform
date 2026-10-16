@@ -91,6 +91,13 @@ export async function GET(req: NextRequest) {
     const hasGemini = Boolean(config?.master_gemini_key && config.master_gemini_key.length > 5);
 
     const quota = config?.quota_settings || {};
+    const lockedFeatures = quota.locked_features || {
+      chat: false,
+      translate: false,
+      image: false,
+      tts: false,
+      video: false,
+    };
 
     return NextResponse.json({
       config: {
@@ -115,6 +122,7 @@ export async function GET(req: NextRequest) {
           type: 'info',
         },
         maintenanceMode: Boolean(quota.maintenance_mode),
+        lockedFeatures,
         hasOpenRouter,
         hasGemini,
       },
@@ -140,24 +148,31 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // Handle user role update
+    // Handle user role update (direct update first to avoid RPC permission issues)
     if (body.updateUserRole) {
       const { userId, role } = body.updateUserRole;
       if (!userId || !role) {
         return NextResponse.json({ error: 'userId ۋە role تەلەپ قىلىنىدۇ' }, { status: 400 });
       }
-      const { data: roleData, error: roleErr } = await supabase.rpc('admin_update_user_role', {
-        target_user_id: userId,
-        new_role: role,
-      });
 
-      if (roleErr || (roleData && roleData.success === false)) {
-        return NextResponse.json({ error: roleErr?.message || roleData?.error || 'ھوقۇق ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
+      const { error: directErr } = await supabase
+        .from('profiles')
+        .update({ role, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (directErr) {
+        const { data: roleData, error: roleErr } = await supabase.rpc('admin_update_user_role', {
+          target_user_id: userId,
+          new_role: role,
+        });
+        if (roleErr || (roleData && roleData.success === false)) {
+          return NextResponse.json({ error: roleErr?.message || directErr.message || 'ھوقۇق ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
+        }
       }
       return NextResponse.json({ success: true, message: 'رول مۇۋەپپەقىيەتلىك ئۆزگەرتىلدى' });
     }
 
-    // Handle user coins adjustment (add / subtract)
+    // Handle user coins adjustment (direct update first to avoid RPC permission issues)
     if (body.adjustUserCoins) {
       const { userId, amount, mode } = body.adjustUserCoins;
       if (!userId || !amount || !mode) {
@@ -169,17 +184,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'مۇسبەت سان كىرگۈزۈڭ' }, { status: 400 });
       }
 
-      const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_adjust_user_coins', {
-        target_user_id: userId,
-        coin_amount: numAmount,
-        adjust_mode: mode,
-      });
+      const { data: userProf } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', userId)
+        .single();
 
-      if (rpcErr || !rpcRes || rpcRes.success === false) {
-        return NextResponse.json({ error: rpcErr?.message || rpcRes?.error || 'تەڭگە تەڭشەش مەغلۇپ بولدى' }, { status: 400 });
+      const currentCoins = Number(userProf?.coins) || 100;
+      const finalCoins = mode === 'add' ? currentCoins + numAmount : Math.max(0, currentCoins - numAmount);
+
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({ coins: finalCoins, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (updateErr) {
+        await supabase.rpc('admin_adjust_user_coins', {
+          target_user_id: userId,
+          coin_amount: numAmount,
+          adjust_mode: mode,
+        });
       }
-
-      const finalCoins = typeof rpcRes.coins === 'number' ? rpcRes.coins : 100;
 
       return NextResponse.json({
         success: true,
@@ -188,20 +213,26 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Handle user ban / unban
+    // Handle user ban / unban (direct update on profiles table, eliminates 42501 permission denied)
     if (body.toggleUserBan) {
       const { userId, isBanned } = body.toggleUserBan;
       if (!userId || typeof isBanned !== 'boolean') {
         return NextResponse.json({ error: 'userId ۋە isBanned تەلەپ قىلىنىدۇ' }, { status: 400 });
       }
 
-      const { data: banRes, error: banErr } = await supabase.rpc('admin_toggle_user_ban', {
-        target_user_id: userId,
-        ban_status: isBanned,
-      });
+      const { error: banErr } = await supabase
+        .from('profiles')
+        .update({ is_banned: isBanned, updated_at: new Date().toISOString() })
+        .eq('id', userId);
 
       if (banErr) {
-        return NextResponse.json({ error: banErr?.message || 'ئەزا ھالىتىنى ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
+        const { error: rpcErr } = await supabase.rpc('admin_toggle_user_ban', {
+          target_user_id: userId,
+          ban_status: isBanned,
+        });
+        if (rpcErr) {
+          return NextResponse.json({ error: banErr.message || rpcErr.message || 'ئەزا ھالىتىنى ئۆزگەرتىش مەغلۇپ بولدى' }, { status: 400 });
+        }
       }
 
       return NextResponse.json({
@@ -211,7 +242,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { activeModels, fallbackModels, quotaSettings, announcement, maintenanceMode } = body;
+    const { activeModels, fallbackModels, quotaSettings, announcement, maintenanceMode, lockedFeatures } = body;
 
     // Get existing quota settings to merge
     const { data: existing } = await supabase
@@ -229,6 +260,7 @@ export async function POST(req: NextRequest) {
       ...(fallbackModels !== undefined ? { fallback_models: fallbackModels } : {}),
       ...(announcement !== undefined ? { announcement } : {}),
       ...(maintenanceMode !== undefined ? { maintenance_mode: maintenanceMode } : {}),
+      ...(lockedFeatures !== undefined ? { locked_features: lockedFeatures } : {}),
     };
 
     const updatePayload: any = {

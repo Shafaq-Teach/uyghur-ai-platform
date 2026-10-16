@@ -41,7 +41,8 @@ import {
   Coins,
   Plus,
   Minus,
-  Ban
+  Ban,
+  Unlock
 } from 'lucide-react';
 import { SearchableModelSelect } from '@/components/SearchableModelSelect';
 import { ModelSelectorModal } from '@/components/ModelSelectorModal';
@@ -71,6 +72,13 @@ interface AdminConfigResponse {
       type: string;
     };
     maintenanceMode?: boolean;
+    lockedFeatures?: {
+      chat?: boolean;
+      translate?: boolean;
+      image?: boolean;
+      tts?: boolean;
+      video?: boolean;
+    };
     hasOpenRouter: boolean;
     hasGemini: boolean;
   };
@@ -147,6 +155,21 @@ export default function AdminDashboardPage() {
   // Maintenance mode
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
+  // Locked features state
+  const [lockedFeatures, setLockedFeatures] = useState<{
+    chat: boolean;
+    translate: boolean;
+    image: boolean;
+    tts: boolean;
+    video: boolean;
+  }>({
+    chat: false,
+    translate: false,
+    image: false,
+    tts: false,
+    video: false,
+  });
+
   // User search and filter
   const [userSearch, setUserSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'banned'>('all');
@@ -197,10 +220,38 @@ export default function AdminDashboardPage() {
       if (json.config?.maintenanceMode !== undefined) {
         setMaintenanceMode(json.config.maintenanceMode);
       }
+      if (json.config?.lockedFeatures) {
+        setLockedFeatures({
+          chat: false,
+          translate: false,
+          image: false,
+          tts: false,
+          video: false,
+          ...json.config.lockedFeatures,
+        });
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'خاتالىق كۆرۈلدى');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleLockFeature = async (featureKey: 'chat' | 'translate' | 'image' | 'tts' | 'video') => {
+    const newLocked = !lockedFeatures[featureKey];
+    const updated = { ...lockedFeatures, [featureKey]: newLocked };
+    setLockedFeatures(updated);
+    try {
+      const headers = await getAdminHeaders();
+      await fetch('/api/admin/config', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          lockedFeatures: updated,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to sync lock status:', e);
     }
   };
 
@@ -246,6 +297,7 @@ export default function AdminDashboardPage() {
             type: 'info',
           },
           maintenanceMode: maintenanceMode,
+          lockedFeatures: lockedFeatures,
         }),
       });
 
@@ -1465,6 +1517,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Maintenance Mode Card */}
+          {/* Maintenance Mode Card */}
           <div className="p-6 rounded-3xl bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1490,6 +1543,67 @@ export default function AdminDashboardPage() {
               >
                 <div className="w-4 h-4 rounded-full bg-white shadow-md transform transition" />
               </button>
+            </div>
+          </div>
+
+          {/* Individual Feature Module Locking Card */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.08] shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  ئايرىم بۆلەكلەرنى قۇلۇپلاش (Module Locking)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  مەلۇم بىر ئىقتىدارنى (مەسىلەن: سىن، رەسىم ياكى ئاۋازنى) ئابۇنىتلارغا ۋاقىتلىق قۇلۇپلاپ قويۇش
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+              {[
+                { key: 'chat', label: 'ئەقىللىق پاراڭ', desc: 'Chat' },
+                { key: 'translate', label: 'تەرجىمان', desc: 'Translate' },
+                { key: 'image', label: 'رەسىم ھاسىللاش', desc: 'Image' },
+                { key: 'tts', label: 'ئاۋاز كۆپەيتىش', desc: 'Voice TTS' },
+                { key: 'video', label: 'ئېلان سىن فىلىمى', desc: 'Video' },
+              ].map((item) => {
+                const isLocked = Boolean(lockedFeatures[item.key as keyof typeof lockedFeatures]);
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => handleToggleLockFeature(item.key as any)}
+                    className={`cursor-pointer p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                      isLocked
+                        ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 shadow-md shadow-rose-500/10'
+                        : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/[0.08] hover:border-indigo-400/50 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">{item.label}</span>
+                      {isLocked ? (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/30 flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" />
+                          قۇلۇپلاندى
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1">
+                          <Unlock className="w-2.5 h-2.5" />
+                          ئېچىق
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>{item.desc}</span>
+                      <span className={`text-[10px] font-semibold underline ${isLocked ? 'text-rose-400' : 'text-indigo-400'}`}>
+                        {isLocked ? 'ئېچىش' : 'قۇلۇپلاش'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
