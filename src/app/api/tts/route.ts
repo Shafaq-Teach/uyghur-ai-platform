@@ -39,6 +39,9 @@ function pcmToWav(pcmData: Uint8Array, sampleRate = 24000, numChannels = 1, bits
 }
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('base64');
+  }
   let binary = '';
   const len = bytes.byteLength;
   const chunkSize = 0x8000;
@@ -123,26 +126,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'سۈنئىي ئەقىل ئاچقۇچى (API Key) تېپىلمىدى' }, { status: 401 });
     }
 
-    // Map UI voice IDs to OpenAI TTS voice names
-    const voiceMap: Record<string, string> = {
-      female1: 'nova',
-      female2: 'shimmer',
-      male1: 'echo',
-      male2: 'onyx',
-      nova: 'nova',
-      shimmer: 'shimmer',
-      echo: 'echo',
-      onyx: 'onyx',
-      alloy: 'alloy',
-      fable: 'fable',
-    };
-    const targetVoice = voiceMap[voice] || (voice.includes('male') && !voice.includes('fe') ? 'echo' : 'nova');
+    // Map UI voice IDs based on model architecture:
+    // Gemini TTS models require Gemini native voices (Aoede, Kore, Puck, Charon)
+    // OpenAI models require OpenAI voices (nova, shimmer, echo, onyx)
+    const isGeminiModel = targetModel.toLowerCase().includes('gemini');
+    let targetVoice = '';
+
+    if (isGeminiModel) {
+      const geminiVoiceMap: Record<string, string> = {
+        female1: 'Aoede',
+        female2: 'Kore',
+        male1: 'Puck',
+        male2: 'Charon',
+        Aoede: 'Aoede',
+        Kore: 'Kore',
+        Puck: 'Puck',
+        Charon: 'Charon',
+        Fenrir: 'Fenrir',
+        nova: 'Aoede',
+        shimmer: 'Kore',
+        echo: 'Puck',
+        onyx: 'Charon',
+        alloy: 'Aoede',
+        fable: 'Puck',
+      };
+      targetVoice = geminiVoiceMap[voice] || (voice.toLowerCase().includes('male') && !voice.toLowerCase().includes('fe') ? 'Puck' : 'Aoede');
+    } else {
+      const openAiVoiceMap: Record<string, string> = {
+        female1: 'nova',
+        female2: 'shimmer',
+        male1: 'echo',
+        male2: 'onyx',
+        nova: 'nova',
+        shimmer: 'shimmer',
+        echo: 'echo',
+        onyx: 'onyx',
+        alloy: 'alloy',
+        fable: 'fable',
+        Aoede: 'nova',
+        Kore: 'shimmer',
+        Puck: 'echo',
+        Charon: 'onyx',
+        Fenrir: 'echo',
+      };
+      targetVoice = openAiVoiceMap[voice] || (voice.toLowerCase().includes('male') && !voice.toLowerCase().includes('fe') ? 'echo' : 'nova');
+    }
 
     // 2. OpenRouter Specialized Speech API (/api/v1/audio/speech)
     // Used for specialized TTS models such as google/gemini-3.8-flash-tts, openai/tts-1, etc.
     if (targetModel.includes('tts') || targetModel.includes('speech')) {
       try {
-        const speechRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+        let speechRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${effectiveOpenRouterKey}`,
@@ -156,6 +190,27 @@ export async function POST(req: NextRequest) {
             voice: targetVoice,
           }),
         });
+
+        // If provider returned 400 (e.g. voice mismatch), retry once with the canonical primary voice
+        if (!speechRes.ok && speechRes.status === 400) {
+          const fallbackVoice = isGeminiModel ? 'Aoede' : 'nova';
+          if (targetVoice !== fallbackVoice) {
+            speechRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://uyghur-ai.local',
+                'X-Title': 'Uyghur AI Voice Studio',
+              },
+              body: JSON.stringify({
+                model: targetModel,
+                input: text.trim(),
+                voice: fallbackVoice,
+              }),
+            });
+          }
+        }
 
         if (speechRes.ok) {
           const contentType = speechRes.headers.get('content-type') || '';
@@ -183,9 +238,20 @@ export async function POST(req: NextRequest) {
             pitch,
             remainingCoins: authResult.remainingCoins,
           });
+        } else {
+          const errText = await speechRes.text();
+          console.error('OpenRouter /audio/speech failed:', speechRes.status, errText);
+          return NextResponse.json(
+            { error: `ئاۋاز ھاسىل قىلىشتا كاشىلا كۆرۈلدى: مودېل تەلەپنى رەت قىلدى (${speechRes.status})` },
+            { status: speechRes.status }
+          );
         }
-      } catch (speechErr) {
-        console.warn('OpenRouter /audio/speech attempt failed:', speechErr);
+      } catch (speechErr: any) {
+        console.error('OpenRouter /audio/speech network exception:', speechErr);
+        return NextResponse.json(
+          { error: `ئاۋاز مۇلازىمىتىگە ئۇلىنىش مەغلۇپ بولدى: ${speechErr?.message || 'ئېنىقسىز خاتالىق'}` },
+          { status: 500 }
+        );
       }
     }
 
