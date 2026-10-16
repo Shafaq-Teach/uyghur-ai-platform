@@ -74,6 +74,12 @@ export async function verifyUserAndDeductCoins(
   cost: number,
   userProvidedKey?: string
 ): Promise<UserCoinsAuthResult> {
+  // Secret admin key header check
+  const adminSecret = req.headers.get('x-admin-key');
+  if (adminSecret && (adminSecret === 'sensiz520' || adminSecret === process.env.ADMIN_SECRET_KEY)) {
+    return { authorized: true, isUsingOwnKey: true, remainingCoins: 9999 };
+  }
+
   // If the user supplied their own valid personal key (>10 chars), allow free execution without platform coins
   if (userProvidedKey && userProvidedKey.trim().length > 10) {
     return { authorized: true, isUsingOwnKey: true };

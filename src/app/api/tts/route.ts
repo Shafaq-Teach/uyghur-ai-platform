@@ -93,8 +93,10 @@ export async function POST(req: NextRequest) {
     // Whichever model the administrator selected in serverConfig is 100% strictly used as-is.
     const targetModel = userProvidedKey && reqModel ? reqModel : (serverConfig.activeModels?.tts || 'openai/gpt-audio-mini');
 
-    const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
-    const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
+    const userOpenRouterKey = (openRouterApiKey && !openRouterApiKey.startsWith('AIza') && !openRouterApiKey.startsWith('AQ') && openRouterApiKey.trim().length > 15 ? openRouterApiKey.trim() : '');
+    const masterOpenRouterKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
+    let effectiveOpenRouterKey = userOpenRouterKey || masterOpenRouterKey;
+    const effectiveGeminiKey = (geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY || '').trim();
 
     // 1. Native Google Gemini TTS (if Gemini API key is configured with AIza... and model is gemini direct)
     if (effectiveGeminiKey && effectiveGeminiKey.startsWith('AIza') && targetModel.includes('gemini') && !targetModel.includes('/')) {
@@ -191,6 +193,26 @@ export async function POST(req: NextRequest) {
           }),
         });
 
+        // If provider returned 401 Unauthorized with user-supplied key, fallback to master platform key!
+        if (!speechRes.ok && speechRes.status === 401 && masterOpenRouterKey && effectiveOpenRouterKey !== masterOpenRouterKey) {
+          console.warn('User-provided openRouterApiKey failed with 401, falling back to masterOpenRouterKey');
+          effectiveOpenRouterKey = masterOpenRouterKey;
+          speechRes = await fetch('https://openrouter.ai/api/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${effectiveOpenRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://uyghur-ai.local',
+              'X-Title': 'Uyghur AI Voice Studio',
+            },
+            body: JSON.stringify({
+              model: targetModel,
+              input: text.trim(),
+              voice: targetVoice,
+            }),
+          });
+        }
+
         // If provider returned 400 (e.g. voice mismatch), retry once with the canonical primary voice
         if (!speechRes.ok && speechRes.status === 400) {
           const fallbackVoice = isGeminiModel ? 'Aoede' : 'nova';
@@ -241,8 +263,11 @@ export async function POST(req: NextRequest) {
         } else {
           const errText = await speechRes.text();
           console.error('OpenRouter /audio/speech failed:', speechRes.status, errText);
+          const errorMsg = speechRes.status === 401 
+            ? 'ئاۋاز سىستېمىسى ئاچقۇچى دەلىللەنمىدى (401). باشقۇرۇش مەركىزىدىن OpenRouter ئاچقۇچىنى يېڭىلاڭ.'
+            : `ئاۋاز ھاسىل قىلىشتا كاشىلا كۆرۈلدى: مودېل تەلەپنى رەت قىلدى (${speechRes.status})`;
           return NextResponse.json(
-            { error: `ئاۋاز ھاسىل قىلىشتا كاشىلا كۆرۈلدى: مودېل تەلەپنى رەت قىلدى (${speechRes.status})` },
+            { error: errorMsg },
             { status: speechRes.status }
           );
         }

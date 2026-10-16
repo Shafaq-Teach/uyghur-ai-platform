@@ -41,21 +41,27 @@ export async function GET(req: NextRequest) {
     if (config.openRouterKey && config.openRouterKey.length > 5) {
       const orStart = performance.now();
       try {
-        const orRes = await fetch(`https://openrouter.ai/api/v1/auth/key?_t=${Date.now()}`, {
+        const orRes = await fetch('https://openrouter.ai/api/v1/auth/key', {
           headers: {
             'Authorization': `Bearer ${config.openRouterKey}`,
           },
         });
         openrouterLatency = Math.round(performance.now() - orStart);
         if (orRes.ok) {
+          const keyData = await orRes.json();
           openrouterStatus = 'ok';
           openrouterInfo = {
             statusText: 'ئاچقۇچ نورمال',
             is_valid: true,
+            keyPrefix: config.openRouterKey.slice(0, 15) + '...',
+            limitRemaining: keyData?.data?.limit_remaining,
           };
         } else {
           openrouterStatus = 'error';
           openrouterMsg = `HTTP ${orRes.status} ${orRes.statusText}`;
+          openrouterInfo = {
+            keyPrefix: config.openRouterKey ? config.openRouterKey.slice(0, 15) + '...' : 'none',
+          };
         }
       } catch (e: any) {
         openrouterLatency = Math.round(performance.now() - orStart);
