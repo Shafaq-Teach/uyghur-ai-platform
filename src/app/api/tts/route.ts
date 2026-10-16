@@ -86,23 +86,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // STRICT ADMIN MODEL PRECEDENCE:
-    // If the request uses platform credits (no custom API key), the administrator's configured model takes 100% precedence!
-    let targetModel = userProvidedKey && reqModel ? reqModel : (serverConfig.activeModels?.tts || 'openai/gpt-audio-mini');
-
-    // Normalize legacy OpenAI model IDs to active OpenRouter speech models
-    if (targetModel === 'openai/tts-1') {
-      targetModel = 'openai/gpt-audio-mini';
-    } else if (targetModel === 'openai/tts-1-hd') {
-      targetModel = 'openai/gpt-audio';
-    }
+    // STRICT ADMIN MODEL ENFORCEMENT:
+    // Whichever model the administrator selected in serverConfig is 100% strictly used as-is.
+    const targetModel = userProvidedKey && reqModel ? reqModel : (serverConfig.activeModels?.tts || 'openai/gpt-audio-mini');
 
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
     const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
 
     // 1. Native Google Gemini TTS (if Gemini API key is configured with AIza... and model is gemini direct)
-    if (effectiveGeminiKey && effectiveGeminiKey.startsWith('AIza') && targetModel.includes('gemini')) {
-      const cleanModel = targetModel.replace(/^google\//, '').replace(/^models\//, '').trim() || 'gemini-2.0-flash';
+    if (effectiveGeminiKey && effectiveGeminiKey.startsWith('AIza') && targetModel.includes('gemini') && !targetModel.includes('/')) {
+      const cleanModel = targetModel.replace(/^models\//, '').trim();
       try {
         const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${effectiveGeminiKey}`, {
           method: 'POST',
@@ -145,8 +138,7 @@ export async function POST(req: NextRequest) {
     };
     const targetVoice = voiceMap[voice] || (voice.includes('male') && !voice.includes('fe') ? 'echo' : 'nova');
 
-    // Call chosen audio model via OpenRouter
-    const ttsOpenRouterModel = (targetModel.includes('gemini') || !targetModel.includes('/')) ? 'openai/gpt-audio-mini' : targetModel;
+    // Call exact model configured by administrator via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -156,7 +148,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Uyghur AI Voice Studio',
       },
       body: JSON.stringify({
-        model: ttsOpenRouterModel,
+        model: targetModel,
         messages: [
           {
             role: 'system',

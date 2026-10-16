@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         }),
       });
 
-      // If user-provided key failed with 401, try falling back to the server's Supabase master key
+      // If user-provided key failed with 401, try falling back to the server's Supabase master key with the exact same model
       if (!response.ok && response.status === 401 && serverConfig.openRouterKey && cleanOpenRouterKey !== serverConfig.openRouterKey) {
         response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -89,50 +89,6 @@ export async function POST(req: NextRequest) {
             messages: formattedMessages,
           }),
         });
-      }
-
-      if (!response.ok) {
-        // Fallback 1: Try with google/gemini-2.5-flash on OpenRouter if current model failed
-        if (model !== 'google/gemini-2.5-flash') {
-          const retryRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${cleanOpenRouterKey || serverConfig.openRouterKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://uyghur-ai.local',
-              'X-Title': 'Uyghur AI Platform',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
-              messages: formattedMessages,
-            }),
-          });
-          if (retryRes.ok) {
-            response = retryRes;
-          }
-        }
-
-        // Fallback 2: If OpenRouter still fails and Gemini key exists, seamlessly try direct Gemini
-        if (!response.ok && cleanGeminiKey && cleanGeminiKey.length > 8) {
-          const gemContents = messages.map((m: any) => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }],
-          }));
-          const gemPayload: any = { contents: gemContents };
-          if (systemPrompt) {
-            gemPayload.systemInstruction = { parts: [{ text: systemPrompt }] };
-          }
-          const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${cleanGeminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gemPayload),
-          });
-          if (gemRes.ok) {
-            const gemData = await gemRes.json();
-            const reply = gemData.candidates?.[0]?.content?.parts?.[0]?.text || 'جاۋاب ھاسىل بولمىدى.';
-            return NextResponse.json({ reply, remainingCoins: authResult.remainingCoins });
-          }
-        }
       }
 
       if (!response.ok) {
