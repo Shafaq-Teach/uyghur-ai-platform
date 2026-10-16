@@ -138,16 +138,16 @@ export const Header: React.FC = () => {
                   <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover shrink-0" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
-                    {(user.fullName || user.email || 'U')[0].toUpperCase()}
+                    {(String(user.fullName || user.email || 'U')[0] || 'U').toUpperCase()}
                   </div>
                 )}
                 <div className="hidden md:flex flex-col text-start leading-tight">
                   <span className="font-semibold text-slate-700 dark:text-slate-200 max-w-[90px] truncate">
-                    {user.fullName || user.email?.split('@')[0]}
+                    {user.fullName || (typeof user.email === 'string' ? user.email.split('@')[0] : 'ئەزا')}
                   </span>
                   <span className="text-[10px] text-amber-500 font-bold flex items-center gap-1">
                     <Coins className="w-2.5 h-2.5 text-amber-500" />
-                    <span>{user.coins ?? 100} تەڭگە</span>
+                    <span>{typeof user.coins === 'number' ? user.coins : 100} تەڭگە</span>
                   </span>
                 </div>
                 <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" />
@@ -162,11 +162,11 @@ export const Header: React.FC = () => {
                   {/* Name and Coins */}
                   <div className="px-3.5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-center space-y-1.5">
                     <div className="text-sm font-extrabold text-white truncate">
-                      {user.fullName || user.email?.split('@')[0]}
+                      {user.fullName || (typeof user.email === 'string' ? user.email.split('@')[0] : 'ئەزا')}
                     </div>
                     <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
                       <Coins className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{user.coins ?? 100} تەڭگە</span>
+                      <span>{typeof user.coins === 'number' ? user.coins : 100} تەڭگە</span>
                     </div>
                   </div>
 

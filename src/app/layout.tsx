@@ -69,23 +69,20 @@ export default function RootLayout({
                   }
                 }
               } catch (_) {}
-              // Automatic cache buster and Service Worker cleanup
-              try {
-                if ('serviceWorker' in navigator) {
-                  navigator.serviceWorker.getRegistrations().then(function(regs) {
-                    for (var i = 0; i < regs.length; i++) {
-                      regs[i].unregister();
+              // Safe cleanup of legacy service workers after page is fully loaded
+              if (typeof window !== 'undefined') {
+                window.addEventListener('load', function() {
+                  try {
+                    if ('serviceWorker' in navigator) {
+                      navigator.serviceWorker.getRegistrations().then(function(regs) {
+                        for (var i = 0; i < regs.length; i++) {
+                          regs[i].unregister();
+                        }
+                      });
                     }
-                  });
-                }
-                if ('caches' in window) {
-                  caches.keys().then(function(keys) {
-                    for (var i = 0; i < keys.length; i++) {
-                      caches.delete(keys[i]);
-                    }
-                  });
-                }
-              } catch (_) {}
+                  } catch (_) {}
+                });
+              }
             `,
           }}
         />

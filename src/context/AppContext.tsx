@@ -174,7 +174,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const buildProfile = async (u: any): Promise<UserProfile> => {
-    const isMasterAdmin = u.email?.toLowerCase() === 'yulgun353@gmail.com';
+    if (!u) {
+      return {
+        id: '',
+        email: '',
+        fullName: 'ئەزا',
+        avatarUrl: '',
+        role: 'user',
+        coins: 100,
+        isBanned: false,
+      };
+    }
+    const isMasterAdmin = typeof u.email === 'string' && u.email.toLowerCase() === 'yulgun353@gmail.com';
     let role: 'admin' | 'user' = isMasterAdmin ? 'admin' : 'user';
     let coins = 100;
     let isBanned = false;
@@ -196,14 +207,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isBanned = false;
     }
 
+    const emailName = typeof u.email === 'string' ? u.email.split('@')[0] : '';
+    const rawFullName = u.user_metadata?.full_name || u.user_metadata?.name || emailName || 'ئەزا';
+
     return {
-      id: u.id,
-      email: u.email,
-      fullName: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0],
+      id: u.id || '',
+      email: u.email || '',
+      fullName: String(rawFullName),
       avatarUrl: u.user_metadata?.avatar_url || u.user_metadata?.picture || '',
       role,
-      coins,
-      isBanned,
+      coins: typeof coins === 'number' ? coins : 100,
+      isBanned: Boolean(isBanned),
     };
   };
 
@@ -279,12 +293,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loadGlobalSystemModels = async () => {
     try {
       const { data } = await supabase.from('system_config').select('active_models').eq('id', 'global').single();
-      if (data?.active_models) {
+      if (data?.active_models && typeof data.active_models === 'object') {
+        const validModels = { ...data.active_models };
+        // Purge dummy or corrupted model entries
+        Object.keys(validModels).forEach((k) => {
+          if (!validModels[k] || validModels[k] === 'hacked-model') {
+            delete validModels[k];
+          }
+        });
+
         setSettings(prev => ({
           ...prev,
           featureModels: {
+            ...DEFAULT_SETTINGS.featureModels,
             ...prev.featureModels,
-            ...data.active_models,
+            ...validModels,
           }
         }));
       }
@@ -330,27 +353,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const savedSettings = localStorage.getItem('uyghur_ai_settings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
-        // Repair corrupted or revoked keys from localStorage
-        if (
-          parsed.openRouterApiKey &&
-          (
-            parsed.openRouterApiKey.startsWith('sk-or-v1-f027') ||
-            parsed.openRouterApiKey.startsWith('sk-or-v1-f0d2') ||
-            ((parsed.openRouterApiKey.startsWith('AQ.') || parsed.openRouterApiKey.startsWith('AIza')) && parsed.openRouterApiKey === parsed.geminiApiKey)
-          )
-        ) {
-          parsed.openRouterApiKey = '';
+        if (parsed && typeof parsed === 'object') {
+          // Repair corrupted or revoked keys from localStorage
+          if (
+            parsed.openRouterApiKey &&
+            (
+              parsed.openRouterApiKey.startsWith('sk-or-v1-f027') ||
+              parsed.openRouterApiKey.startsWith('sk-or-v1-f0d2') ||
+              ((parsed.openRouterApiKey.startsWith('AQ.') || parsed.openRouterApiKey.startsWith('AIza')) && parsed.openRouterApiKey === parsed.geminiApiKey)
+            )
+          ) {
+            parsed.openRouterApiKey = '';
+          }
+
+          // Filter out dummy/corrupted models
+          if (parsed.featureModels && typeof parsed.featureModels === 'object') {
+            Object.keys(parsed.featureModels).forEach((k) => {
+              if (parsed.featureModels[k] === 'hacked-model') {
+                delete parsed.featureModels[k];
+              }
+            });
+          }
+
+          const merged: AppSettings = {
+            ...DEFAULT_SETTINGS,
+            ...parsed,
+            featureProviders: {
+              ...DEFAULT_SETTINGS.featureProviders,
+              ...(parsed.featureProviders || {}),
+            },
+            featureModels: {
+              ...DEFAULT_SETTINGS.featureModels,
+              ...(parsed.featureModels || {}),
+            },
+          };
+
           try {
-            localStorage.setItem('uyghur_ai_settings', JSON.stringify({ ...DEFAULT_SETTINGS, ...parsed }));
+            localStorage.setItem('uyghur_ai_settings', JSON.stringify(merged));
           } catch (_) {}
+
+          setSettings(merged);
+          if (parsed.language) setLangState(parsed.language);
+          if (parsed.theme) setThemeState(parsed.theme);
         }
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
-        if (parsed.language) setLangState(parsed.language);
-        if (parsed.theme) setThemeState(parsed.theme);
       }
+
       const savedHistory = localStorage.getItem('uyghur_ai_history');
       if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
+        const parsedHistory = JSON.parse(savedHistory);
+        if (Array.isArray(parsedHistory)) {
+          setHistory(parsedHistory);
+        }
       }
     } catch (e) {
       console.error('Failed to load settings from localStorage', e);
