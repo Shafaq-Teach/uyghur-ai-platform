@@ -10,6 +10,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   feature: keyof FeatureModels;
+  currentModelValue?: string;
+  onSelectModel?: (modelId: string, provider: AIProvider) => void;
 }
 
 interface ModelItem {
@@ -20,18 +22,53 @@ interface ModelItem {
   isFree?: boolean;
 }
 
+const SPECIAL_MODELS: ModelItem[] = [
+  {
+    id: 'openai/gpt-audio-mini',
+    name: 'OpenAI GPT Audio Mini (تەبىئىي راۋان ئاۋاز)',
+    provider: 'openrouter',
+    description: 'Standard high-speed natural speech synthesis engine',
+  },
+  {
+    id: 'openai/gpt-audio',
+    name: 'OpenAI GPT Audio Studio (ستۇدىيە دەرىجىلىك ئاۋاز)',
+    provider: 'openrouter',
+    description: 'Studio quality speech synthesizer model',
+  },
+  {
+    id: 'black-forest-labs/flux-1-schnell',
+    name: 'FLUX-1 Schnell (Black Forest Labs)',
+    provider: 'openrouter',
+    description: 'Ultra fast 4-step high resolution image generation',
+  },
+  {
+    id: 'black-forest-labs/flux-1-dev',
+    name: 'FLUX-1 Dev (Black Forest Labs)',
+    provider: 'openrouter',
+    description: 'Elite open weights image generation model',
+  },
+];
+
 let cachedGlobalModels: ModelItem[] | null = null;
 
-export const ModelSelectorModal: React.FC<Props> = ({ isOpen, onClose, feature }) => {
+export const ModelSelectorModal: React.FC<Props> = ({ 
+  isOpen, 
+  onClose, 
+  feature, 
+  currentModelValue, 
+  onSelectModel 
+}) => {
   const { t, isRtl, settings, setModelForFeature } = useApp();
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'recommended' | 'all' | 'gemini' | 'openrouter' | 'free'>('recommended');
+  const [activeTab, setActiveTab] = useState<'recommended' | 'all' | 'gemini' | 'openrouter' | 'free' | 'audio' | 'image'>(
+    feature === 'tts' ? 'audio' : feature === 'image' ? 'image' : 'recommended'
+  );
   const [customModelId, setCustomModelId] = useState('');
   const [customProvider, setCustomProvider] = useState<AIProvider>('openrouter');
-  const [allModels, setAllModels] = useState<ModelItem[]>(cachedGlobalModels || []);
+  const [allModels, setAllModels] = useState<ModelItem[]>(cachedGlobalModels || SPECIAL_MODELS);
   const [loading, setLoading] = useState(false);
 
-  const currentModel = settings.featureModels[feature];
+  const currentModel = currentModelValue || settings.featureModels[feature];
 
   const getRecommendedModels = () => {
     switch (feature) {
@@ -59,11 +96,20 @@ export const ModelSelectorModal: React.FC<Props> = ({ isOpen, onClose, feature }
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.models)) {
-          cachedGlobalModels = data.models;
-          setAllModels(data.models);
+          const combined = [...SPECIAL_MODELS];
+          data.models.forEach((m: any) => {
+            if (!combined.some((x) => x.id === m.id)) {
+              combined.push(m);
+            }
+          });
+          cachedGlobalModels = combined;
+          setAllModels(combined);
         }
       })
-      .catch((err) => console.error('Failed to load models:', err))
+      .catch((err) => {
+        console.error('Failed to load models:', err);
+        setAllModels(SPECIAL_MODELS);
+      })
       .finally(() => setLoading(false));
   }, [isOpen]);
 
@@ -83,6 +129,12 @@ export const ModelSelectorModal: React.FC<Props> = ({ isOpen, onClose, feature }
         if (m.provider !== 'openrouter') return false;
       } else if (activeTab === 'free') {
         if (!m.isFree && !m.id.includes(':free')) return false;
+      } else if (activeTab === 'audio') {
+        const isAudio = m.id.includes('audio') || m.id.includes('tts') || m.id.includes('speech') || m.id.includes('voice');
+        if (!isAudio) return false;
+      } else if (activeTab === 'image') {
+        const isImg = m.id.includes('flux') || m.id.includes('diffusion') || m.id.includes('imagen') || m.id.includes('recraft') || m.id.includes('vision');
+        if (!isImg) return false;
       }
 
       if (!q) return true;
@@ -97,14 +149,23 @@ export const ModelSelectorModal: React.FC<Props> = ({ isOpen, onClose, feature }
   if (!isOpen) return null;
 
   const handleSelect = (modelId: string, provider: AIProvider) => {
-    setModelForFeature(feature, modelId, provider);
+    if (onSelectModel) {
+      onSelectModel(modelId, provider);
+    } else {
+      setModelForFeature(feature, modelId, provider);
+    }
     onClose();
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customModelId.trim()) {
-      setModelForFeature(feature, customModelId.trim(), customProvider);
+      const trimmed = customModelId.trim();
+      if (onSelectModel) {
+        onSelectModel(trimmed, customProvider);
+      } else {
+        setModelForFeature(feature, trimmed, customProvider);
+      }
       onClose();
     }
   };
@@ -214,6 +275,26 @@ export const ModelSelectorModal: React.FC<Props> = ({ isOpen, onClose, feature }
               }`}
             >
               {t.tabFree}
+            </button>
+            <button
+              onClick={() => setActiveTab('audio')}
+              className={`px-3 py-1 rounded-xl font-medium whitespace-nowrap transition ${
+                activeTab === 'audio'
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              ئاۋاز (Audio/TTS)
+            </button>
+            <button
+              onClick={() => setActiveTab('image')}
+              className={`px-3 py-1 rounded-xl font-medium whitespace-nowrap transition ${
+                activeTab === 'image'
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              رەسىم (Image)
             </button>
           </div>
         </div>

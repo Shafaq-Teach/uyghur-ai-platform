@@ -63,14 +63,14 @@ export const SearchableModelSelect: React.FC<Props> = ({
 
   const SPECIAL_MODELS: ModelItem[] = [
     {
-      id: 'openai/tts-1',
-      name: 'OpenAI TTS-1 (تەبىئىي ئاۋاز)',
+      id: 'openai/gpt-audio-mini',
+      name: 'OpenAI GPT Audio Mini (تەبىئىي راۋان ئاۋاز)',
       provider: 'openrouter',
       description: 'Standard high-speed natural speech synthesis',
     },
     {
-      id: 'openai/tts-1-hd',
-      name: 'OpenAI TTS-1 HD (ستۇدىيە سۈپىتىدە ئاۋاز)',
+      id: 'openai/gpt-audio',
+      name: 'OpenAI GPT Audio Studio (ستۇدىيە دەرىجىلىك ئاۋاز)',
       provider: 'openrouter',
       description: 'Studio quality speech synthesizer model',
     },

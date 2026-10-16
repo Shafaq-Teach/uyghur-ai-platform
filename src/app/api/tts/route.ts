@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       voice = 'female1', 
       speed = 1.0, 
       pitch = 1.0,
-      model = serverConfig.activeModels?.tts || 'google/gemini-3.8-flash-lite-tts',
+      model: reqModel,
       openRouterApiKey,
       geminiApiKey,
     } = body;
@@ -86,12 +86,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // STRICT ADMIN MODEL PRECEDENCE:
+    // If the request uses platform credits (no custom API key), the administrator's configured model takes 100% precedence!
+    let targetModel = userProvidedKey && reqModel ? reqModel : (serverConfig.activeModels?.tts || 'openai/gpt-audio-mini');
+
+    // Normalize legacy OpenAI model IDs to active OpenRouter speech models
+    if (targetModel === 'openai/tts-1') {
+      targetModel = 'openai/gpt-audio-mini';
+    } else if (targetModel === 'openai/tts-1-hd') {
+      targetModel = 'openai/gpt-audio';
+    }
+
     const effectiveOpenRouterKey = openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY;
     const effectiveGeminiKey = geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY;
 
-    // 1. Native Google Gemini TTS (e.g. google/gemini-3.8-flash-lite-tts)
-    if (effectiveGeminiKey && model.includes('gemini')) {
-      const cleanModel = model.replace(/^google\//, '').replace(/^models\//, '').trim() || 'gemini-3.8-flash-lite-tts';
+    // 1. Native Google Gemini TTS (if Gemini API key is configured with AIza... and model is gemini direct)
+    if (effectiveGeminiKey && effectiveGeminiKey.startsWith('AIza') && targetModel.includes('gemini')) {
+      const cleanModel = targetModel.replace(/^google\//, '').replace(/^models\//, '').trim() || 'gemini-2.0-flash';
       try {
         const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${effectiveGeminiKey}`, {
           method: 'POST',
@@ -134,8 +145,8 @@ export async function POST(req: NextRequest) {
     };
     const targetVoice = voiceMap[voice] || (voice.includes('male') && !voice.includes('fe') ? 'echo' : 'nova');
 
-    // Call OpenAI GPT-Audio model via OpenRouter as fallback or secondary engine
-    const ttsOpenRouterModel = model.includes('gemini') ? 'openai/gpt-audio-mini' : model;
+    // Call chosen audio model via OpenRouter
+    const ttsOpenRouterModel = (targetModel.includes('gemini') || !targetModel.includes('/')) ? 'openai/gpt-audio-mini' : targetModel;
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -237,7 +248,7 @@ export async function POST(req: NextRequest) {
       audioUrl,
       text,
       voice: targetVoice,
-      model: 'openai/gpt-audio-mini',
+      model: targetModel,
       speed,
       pitch,
       remainingCoins: authResult.remainingCoins,

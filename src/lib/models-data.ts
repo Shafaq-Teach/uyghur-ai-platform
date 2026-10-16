@@ -139,28 +139,28 @@ export const IMAGE_MODELS: ModelOption[] = [
 
 export const TTS_MODELS: ModelOption[] = [
   {
-    id: 'openai/tts-1',
-    name: 'OpenAI TTS-1 (OpenRouter / Audio API)',
+    id: 'openai/gpt-audio-mini',
+    name: 'OpenAI GPT Audio Mini (تەبىئىي ئاۋاز - تەۋسىيە)',
     provider: 'openrouter',
-    description: 'Natural human-like speech synthesis with crisp pronunciation',
+    description: 'يۇقىرى سۈرئەتلىك، تەبىئىي راۋان ئەقلىي ئاۋاز سىنتىزلىگۈچى رەسمىي ماتور',
   },
   {
-    id: 'openai/tts-1-hd',
-    name: 'OpenAI TTS-1 HD (OpenRouter)',
+    id: 'openai/gpt-audio',
+    name: 'OpenAI GPT Audio (ستۇدىيە دەرىجىلىك ئاۋاز)',
     provider: 'openrouter',
-    description: 'High definition expressive voice model',
+    description: 'ستۇدىيە دەرىجىلىك يۇقىرى سۈپەتلىك ۋە تەسىرلىك ئەقلىي ئاۋاز مودېلى',
   },
   {
-    id: 'gemini-2.5-flash-audio',
-    name: 'Gemini Audio Engine',
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash Audio (OpenRouter)',
+    provider: 'openrouter',
+    description: 'Google كۆپ شەكىللىك سۈنئىي ئىدراك ئاۋاز قوزغاتقۇچى',
+  },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash (Direct API)',
     provider: 'gemini',
-    description: 'Google native multimodal speech generator',
-  },
-  {
-    id: 'edge-tts-ug',
-    name: 'Uyghur Edge TTS (Gulnar / Yunus)',
-    provider: 'openrouter',
-    description: 'Specialized native Uyghur vocalization engine',
+    description: 'Google بىۋاسىتە ئۇلىنىش ئاۋاز سىنتىز ماتورى',
   },
 ];
 

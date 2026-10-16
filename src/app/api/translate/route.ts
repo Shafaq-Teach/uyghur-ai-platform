@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // STRICT ADMIN MODEL ENFORCEMENT:
+    // If user is using platform credits, admin configured model from serverConfig takes 100% precedence!
+    const effectiveModel = userProvidedKey && body.model ? body.model : (serverConfig.activeModels?.translate || 'google/gemini-2.5-flash');
+
     const cleanOpenRouterKey = (openRouterApiKey || serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
     const cleanGeminiKey = (geminiApiKey || serverConfig.geminiKey || process.env.GEMINI_API_KEY || '').trim();
 
@@ -72,7 +76,7 @@ CRITICAL RULES:
     // Smart Provider Resolution:
     // If the model is a native Google Gemini model (e.g. 'gemini-3.8-pro', 'gemini-3.8-flash'),
     // route it directly to Google Gemini if a Gemini API key is available!
-    const isNativeGeminiModel = !model.includes('/') && model.toLowerCase().includes('gemini');
+    const isNativeGeminiModel = !effectiveModel.includes('/') && effectiveModel.toLowerCase().includes('gemini');
     const effectiveProvider = (provider === 'gemini' || (isNativeGeminiModel && cleanGeminiKey && cleanGeminiKey.length > 8))
       ? 'gemini'
       : (provider || 'openrouter');
@@ -95,7 +99,7 @@ CRITICAL RULES:
           'X-Title': 'Uyghur AI Translator',
         },
         body: JSON.stringify({
-          model: model,
+          model: effectiveModel,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: text },
@@ -115,7 +119,7 @@ CRITICAL RULES:
             'X-Title': 'Uyghur AI Translator',
           },
           body: JSON.stringify({
-            model: model,
+            model: effectiveModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: text },
@@ -197,7 +201,7 @@ CRITICAL RULES:
       }
 
       // Migrate deprecated models
-      let geminiModel = model.replace(/^google\//, '').replace(/^models\//, '').trim();
+      let geminiModel = effectiveModel.replace(/^google\//, '').replace(/^models\//, '').trim();
       if (geminiModel === 'gemini-2.5-flash' || geminiModel === 'gemini-2.5-flash-latest' || !geminiModel) {
         geminiModel = 'gemini-flash-latest';
       } else if (geminiModel === 'gemini-2.5-pro') {

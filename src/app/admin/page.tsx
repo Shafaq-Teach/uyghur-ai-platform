@@ -44,6 +44,8 @@ import {
   Ban
 } from 'lucide-react';
 import { SearchableModelSelect } from '@/components/SearchableModelSelect';
+import { ModelSelectorModal } from '@/components/ModelSelectorModal';
+import { FeatureModels } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 interface AdminConfigResponse {
@@ -122,9 +124,12 @@ export default function AdminDashboardPage() {
     chat: 'google/gemini-2.5-flash',
     translate: 'google/gemini-2.5-flash',
     image: 'black-forest-labs/flux-1-schnell',
-    tts: 'openai/tts-1',
+    tts: 'openai/gpt-audio-mini',
     video: 'google/gemini-2.5-flash',
   });
+
+  // Modal feature state to open full model catalogue modal
+  const [modalFeature, setModalFeature] = useState<keyof FeatureModels | null>(null);
 
   // Fallback models
   const [fallbackModels, setFallbackModels] = useState({
@@ -612,23 +617,35 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {[
-                { title: 'ئەقلىي پاراڭ (Chat)', model: selectedModels.chat, icon: MessageSquare, color: 'text-indigo-400' },
-                { title: 'تەرجىمە (Translate)', model: selectedModels.translate, icon: Languages, color: 'text-emerald-400' },
-                { title: 'رەسىم ستۇدىيىسى (Image)', model: selectedModels.image, icon: ImageIcon, color: 'text-purple-400' },
-                { title: 'ئاۋازغا ئايلاندۇرۇش (TTS)', model: selectedModels.tts, icon: Volume2, color: 'text-blue-400' },
-                { title: 'تاۋار سىن فىلىمى (Video)', model: selectedModels.video, icon: Video, color: 'text-amber-400' },
-              ].map((item, idx) => {
+                { key: 'chat' as const, title: 'ئەقلىي پاراڭ (Chat)', model: selectedModels.chat, icon: MessageSquare, color: 'text-indigo-400' },
+                { key: 'translate' as const, title: 'تەرجىمە (Translate)', model: selectedModels.translate, icon: Languages, color: 'text-emerald-400' },
+                { key: 'image' as const, title: 'رەسىم ستۇدىيىسى (Image)', model: selectedModels.image, icon: ImageIcon, color: 'text-purple-400' },
+                { key: 'tts' as const, title: 'ئاۋازغا ئايلاندۇرۇش (TTS)', model: selectedModels.tts, icon: Volume2, color: 'text-blue-400' },
+                { key: 'video' as const, title: 'تاۋار سىن فىلىمى (Video)', model: selectedModels.video, icon: Video, color: 'text-amber-400' },
+              ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{item.title}</span>
-                      <Icon className={`w-3.5 h-3.5 ${item.color}`} />
+                  <div key={item.key} className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.06] flex flex-col justify-between space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{item.title}</span>
+                        <Icon className={`w-3.5 h-3.5 ${item.color}`} />
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 truncate" title={item.model}>
+                        {item.model}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {item.model.includes('gemini') && !item.model.includes('/') ? 'Gemini Direct' : 'OpenRouter API'}
+                      </div>
                     </div>
-                    <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 truncate" title={item.model}>
-                      {item.model.split('/').pop()}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">{item.model.split('/')[0]}</div>
+                    <button
+                      type="button"
+                      onClick={() => setModalFeature(item.key)}
+                      className="w-full py-2 px-3 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-500 hover:text-white border border-indigo-500/20 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>مودېل تاللاش كۆزنىكى</span>
+                    </button>
                   </div>
                 );
               })}
@@ -741,6 +758,14 @@ export default function AdminDashboardPage() {
                   categoryHint="chat"
                   placeholder="چات مودېلىنى ئىزدەڭ..."
                 />
+                <button
+                  type="button"
+                  onClick={() => setModalFeature('chat')}
+                  className="w-full py-1.5 px-3 rounded-xl bg-slate-200/60 dark:bg-white/[0.05] hover:bg-indigo-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/[0.08] text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>پۈتۈن كۆزنەكتە ئىزدەپ تاللاش</span>
+                </button>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   ئابۇنىتلار چاتتا پاراڭلاشقاندا ئاپتوماتىك قوزغىلىدىغان باش ماتور.
                 </p>
@@ -766,6 +791,14 @@ export default function AdminDashboardPage() {
                   categoryHint="translate"
                   placeholder="تەرجىمە مودېلىنى ئىزدەڭ..."
                 />
+                <button
+                  type="button"
+                  onClick={() => setModalFeature('translate')}
+                  className="w-full py-1.5 px-3 rounded-xl bg-slate-200/60 dark:bg-white/[0.05] hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/[0.08] text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>پۈتۈن كۆزنەكتە ئىزدەپ تاللاش</span>
+                </button>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   ئۇيغۇرچە ئەدەبىي ۋە كەسپىي تەرجىمە ئۈچۈن ئىشلىتىلىدىغان مەخسۇس ماتور.
                 </p>
@@ -791,6 +824,14 @@ export default function AdminDashboardPage() {
                   categoryHint="image"
                   placeholder="رەسىم مودېلىنى ئىزدەڭ..."
                 />
+                <button
+                  type="button"
+                  onClick={() => setModalFeature('image')}
+                  className="w-full py-1.5 px-3 rounded-xl bg-slate-200/60 dark:bg-white/[0.05] hover:bg-purple-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/[0.08] text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>پۈتۈن كۆزنەكتە ئىزدەپ تاللاش</span>
+                </button>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   تېكىستتىن يۇقىرى سۈپەتلىك گرافىك رەسىم سىزىدىغان نېرۋا تورى مودېلى.
                 </p>
@@ -816,6 +857,14 @@ export default function AdminDashboardPage() {
                   categoryHint="tts"
                   placeholder="ئاۋاز مودېلىنى ئىزدەڭ..."
                 />
+                <button
+                  type="button"
+                  onClick={() => setModalFeature('tts')}
+                  className="w-full py-1.5 px-3 rounded-xl bg-slate-200/60 dark:bg-white/[0.05] hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/[0.08] text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>پۈتۈن كۆزنەكتە ئىزدەپ تاللاش</span>
+                </button>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   تېكىستنى ئاۋازغا ئايلاندۇرۇش ۋە ئوقۇتۇش ماتورى.
                 </p>
@@ -841,6 +890,14 @@ export default function AdminDashboardPage() {
                   categoryHint="video"
                   placeholder="سىن سىنارىيە مودېلىنى ئىزدەڭ..."
                 />
+                <button
+                  type="button"
+                  onClick={() => setModalFeature('video')}
+                  className="w-full py-1.5 px-3 rounded-xl bg-slate-200/60 dark:bg-white/[0.05] hover:bg-amber-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/[0.08] text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>پۈتۈن كۆزنەكتە ئىزدەپ تاللاش</span>
+                </button>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   مەھسۇلاتنى ئېلان فىلىمى سىنارىيەسىگە ئايلاندۇرىدىغان ئەقلىي مودېل.
                 </p>
@@ -1436,6 +1493,23 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full Searchable Model Selector Modal */}
+      {modalFeature && (
+        <ModelSelectorModal
+          isOpen={!!modalFeature}
+          onClose={() => setModalFeature(null)}
+          feature={modalFeature}
+          currentModelValue={selectedModels[modalFeature]}
+          onSelectModel={(modelId) => {
+            setSelectedModels((prev) => ({
+              ...prev,
+              [modalFeature]: modelId,
+            }));
+            setModalFeature(null);
+          }}
+        />
       )}
     </div>
   );

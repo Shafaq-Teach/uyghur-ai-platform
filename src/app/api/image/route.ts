@@ -156,6 +156,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // STRICT ADMIN MODEL ENFORCEMENT:
+    // If user is using platform credits, admin configured model from serverConfig takes 100% precedence!
+    const effectiveModel = userProvidedKey && body.model ? body.model : (serverConfig.activeModels?.image || 'black-forest-labs/flux-1-schnell');
+
     const clientORKey = (openRouterApiKey || '').trim();
     const serverMasterORKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
 
@@ -210,7 +214,7 @@ export async function POST(req: NextRequest) {
               'X-Title': 'Uyghur AI Image Studio',
             },
             body: JSON.stringify({
-              model: model,
+              model: effectiveModel,
               messages: [
                 {
                   role: 'user',
@@ -233,7 +237,7 @@ export async function POST(req: NextRequest) {
                 translatedPrompt: englishPrompt,
                 enhancedPrompt: enrichedPrompt,
                 aspectRatio,
-                model,
+                model: effectiveModel,
                 translateModel: effectiveTranslateModel,
                 remainingCoins: authResult.remainingCoins,
               });
@@ -262,7 +266,7 @@ export async function POST(req: NextRequest) {
       translatedPrompt: englishPrompt,
       enhancedPrompt: enrichedPrompt,
       aspectRatio,
-      model: model || 'black-forest-labs/flux-1-schnell',
+      model: effectiveModel || 'black-forest-labs/flux-1-schnell',
       translateModel: effectiveTranslateModel,
       remainingCoins: authResult.remainingCoins,
     });

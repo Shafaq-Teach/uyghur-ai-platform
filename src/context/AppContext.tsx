@@ -59,7 +59,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     chat: 'google/gemini-2.5-flash',
     translate: 'google/gemini-2.5-flash',
     image: 'black-forest-labs/flux-1-schnell',
-    tts: 'openai/tts-1',
+    tts: 'openai/gpt-audio-mini',
     video: 'google/gemini-2.5-flash',
   },
 };

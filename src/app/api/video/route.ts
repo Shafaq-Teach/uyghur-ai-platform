@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // STRICT ADMIN MODEL ENFORCEMENT:
+    // If user is using platform credits, admin configured model from serverConfig takes 100% precedence!
+    const effectiveModel = userProvidedKey && body.model ? body.model : (serverConfig.activeModels?.video || 'google/gemini-2.5-flash');
+
     const clientORKey = (openRouterApiKey || '').trim();
     const serverMasterORKey = (serverConfig.openRouterKey || process.env.OPENROUTER_API_KEY || '').trim();
     const keysToTry = [clientORKey, serverMasterORKey].filter(Boolean);
@@ -204,7 +208,7 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       adStyle,
       duration,
       aspectRatio,
-      model,
+      model: effectiveModel,
       posterImageUrl,
       videoUrl: posterImageUrl,
       humanDetectionStatus: 'Passed (No humans detected. Strictly product-only)',
