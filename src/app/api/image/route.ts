@@ -200,12 +200,53 @@ export async function POST(req: NextRequest) {
     const styleModifier = stylePrompts[style] || stylePrompts.photorealistic;
     const enrichedPrompt = `${englishPrompt}, ${styleModifier}, high quality, detailed masterpiece`;
 
-    // 2. Try OpenRouter FLUX / SD if key is provided and active (with client -> master key fallback)
+    // 2. Try OpenRouter official Image Generation API (/api/v1/images) first, then chat/completions fallback
     const keysForImage = [clientORKey, serverMasterORKey].filter(Boolean);
     if (provider === 'openrouter' && keysForImage.length > 0) {
       for (const imageKey of keysForImage) {
         try {
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          // Attempt A: Dedicated OpenRouter Image Generation API (/api/v1/images)
+          // Used for models like openai/gpt-image-2.5-flare, google/gemini-2.5-flash-image, etc.
+          const imgResponse = await fetch('https://openrouter.ai/api/v1/images', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${imageKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://uyghur-ai.local',
+              'X-Title': 'Uyghur AI Image Studio',
+            },
+            body: JSON.stringify({
+              model: effectiveModel,
+              prompt: enrichedPrompt,
+              size: `${dims.width}x${dims.height}`,
+            }),
+          });
+
+          if (imgResponse.ok) {
+            const data = await imgResponse.json();
+            const item = data.data?.[0];
+            const imageUrl = item?.b64_json 
+              ? `data:${item.media_type || 'image/png'};base64,${item.b64_json}` 
+              : (item?.url || null);
+
+            if (imageUrl) {
+              return NextResponse.json({
+                imageUrl,
+                originalPrompt: prompt,
+                translatedPrompt: englishPrompt,
+                enhancedPrompt: enrichedPrompt,
+                aspectRatio,
+                model: effectiveModel,
+                translateModel: effectiveTranslateModel,
+                remainingCoins: authResult.remainingCoins,
+              });
+            }
+          } else {
+            console.warn(`OpenRouter /images failed with status ${imgResponse.status}, trying chat/completions fallback:`, await imgResponse.text());
+          }
+
+          // Attempt B: Multimodal chat/completions fallback
+          const chatResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${imageKey}`,
@@ -225,8 +266,8 @@ export async function POST(req: NextRequest) {
             }),
           });
 
-          if (response.ok) {
-            const data = await response.json();
+          if (chatResponse.ok) {
+            const data = await chatResponse.json();
             const choice = data.choices?.[0];
             const rawImg = choice?.message?.images?.[0];
             const imageUrl = rawImg?.image_url?.url || rawImg?.url || choice?.message?.content;
@@ -241,11 +282,6 @@ export async function POST(req: NextRequest) {
                 translateModel: effectiveTranslateModel,
                 remainingCoins: authResult.remainingCoins,
               });
-            }
-          } else {
-            console.warn(`OpenRouter image call failed with key ${imageKey.slice(0, 10)} status:`, response.status);
-            if (response.status === 401 || response.status === 402) {
-              continue; // try server master key next
             }
           }
         } catch (e) {
