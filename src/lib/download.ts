@@ -35,7 +35,9 @@ export async function downloadMedia(urlOrData: string, filename: string): Promis
     // Cross-origin URLs cannot use the <a download> attribute directly in modern browsers.
     // Instead, route through our /api/download endpoint which sets Content-Disposition: attachment,
     // causing the browser to place the file straight into the Downloads manager!
-    const proxyUrl = `/api/download?url=${encodeURIComponent(urlOrData)}&filename=${encodeURIComponent(filename)}`;
+    const proxyUrl = urlOrData.startsWith('/api/download')
+      ? (urlOrData.includes('filename=') ? urlOrData : `${urlOrData}&filename=${encodeURIComponent(filename)}`).replace(/([?&])inline=true(&|$)/, '$1').replace(/[?&]$/, '')
+      : `/api/download?url=${encodeURIComponent(urlOrData)}&filename=${encodeURIComponent(filename)}`;
     triggerAnchorDownload(proxyUrl, filename);
     return true;
   } catch (err) {

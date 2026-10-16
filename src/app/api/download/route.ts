@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSystemConfigServer } from '@/lib/serverConfig';
 
 export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
   const filename = req.nextUrl.searchParams.get('filename') || `file-${Date.now()}`;
+  const inline = req.nextUrl.searchParams.get('inline') === 'true';
 
   if (!url) {
     return new NextResponse('URL parameter is required', { status: 400 });
   }
 
   try {
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+    };
+
+    if (url.includes('openrouter.ai')) {
+      const config = await getSystemConfigServer();
+      const orKey = config.openRouterKey || process.env.OPENROUTER_API_KEY;
+      if (orKey) {
+        fetchHeaders['Authorization'] = `Bearer ${orKey}`;
+      }
+    }
+
     const upstreamRes = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-      },
+      headers: fetchHeaders,
     });
 
     if (!upstreamRes.ok) {
@@ -24,14 +36,17 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const contentType = upstreamRes.headers.get('content-type') || 'application/octet-stream';
+    const contentType = upstreamRes.headers.get('content-type') || (url.includes('video') ? 'video/mp4' : 'application/octet-stream');
     const cleanFilename = filename.replace(/["\r\n\\]/g, '').trim() || 'download';
+    const disposition = inline
+      ? 'inline'
+      : `attachment; filename="${cleanFilename}"; filename*=UTF-8''${encodeURIComponent(cleanFilename)}`;
 
     return new NextResponse(upstreamRes.body, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${cleanFilename}"; filename*=UTF-8''${encodeURIComponent(cleanFilename)}`,
+        'Content-Disposition': disposition,
         'Cache-Control': 'public, max-age=86400',
       },
     });

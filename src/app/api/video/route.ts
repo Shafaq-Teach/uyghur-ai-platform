@@ -190,15 +190,95 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       englishVisualPhrase = productName || 'luxury product';
     }
 
-    // 3. Generate Real High-End AI Commercial Visual Keyframe (Flux.1 Diffusion)
-    const seed = Math.floor(Math.random() * 1000000);
-    const rawVisualPrompt = `${englishVisualPhrase}, luxury commercial advertising, ${chosenStyle.enDesc}, 8k cinema camera, dramatic studio lighting, masterpiece`;
-    const cleanVisualPrompt = rawVisualPrompt.replace(/[\r\n\t]+/g, ' ').replace(/[#%&?/\\]/g, ' ').trim();
-
-    const dims = aspectRatio === '16:9' ? { w: 1280, h: 720 } : aspectRatio === '1:1' ? { w: 1024, h: 1024 } : { w: 720, h: 1280 };
-    const posterImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanVisualPrompt)}?model=flux&width=${dims.w}&height=${dims.h}&seed=${seed}&nologo=true`;
+    // 3. Generate Real High-End AI Video (via OpenRouter /api/v1/videos) with Google Veo 3.1
+    let videoUrl = '';
+    let posterImageUrl = '';
+    let isRealVideo = false;
 
     const videoPrompt = `Cinematic commercial ad of ${englishVisualPhrase}, ${chosenStyle.enDesc}, macro lens, dramatic rim lighting, 4K UHD, 60fps, product cinematography. Negative prompt: ${strictNegativePrompt}`;
+
+    for (const key of keysToTry) {
+      if (videoUrl) break;
+      try {
+        const vidReq = await fetch('https://openrouter.ai/api/v1/videos', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://uyghur-ai.local',
+            'X-Title': 'Uyghur AI Video Studio',
+          },
+          body: JSON.stringify({
+            model: effectiveModel,
+            prompt: videoPrompt,
+          }),
+        });
+
+        if (vidReq.ok || vidReq.status === 202) {
+          const vidData = await vidReq.json();
+          const pollingUrl = vidData.polling_url;
+
+          if (pollingUrl) {
+            // Poll for completion (up to ~45 seconds)
+            for (let attempt = 0; attempt < 9; attempt++) {
+              await new Promise((r) => setTimeout(r, 5000));
+              try {
+                const pollRes = await fetch(pollingUrl, {
+                  headers: { 'Authorization': `Bearer ${key}` },
+                });
+                if (pollRes.ok) {
+                  const pollData = await pollRes.json();
+                  if (pollData.status === 'completed' && pollData.unsigned_urls?.[0]) {
+                    const rawVideoUrl = pollData.unsigned_urls[0];
+                    videoUrl = `/api/download?url=${encodeURIComponent(rawVideoUrl)}&inline=true`;
+                    isRealVideo = true;
+                    break;
+                  } else if (pollData.status === 'failed') {
+                    console.warn('Video generation failed on provider:', pollData.error);
+                    break;
+                  }
+                }
+              } catch (pollErr) {
+                console.warn('Polling error:', pollErr);
+              }
+            }
+          }
+        }
+      } catch (vidErr) {
+        console.warn('OpenRouter video endpoint call failed:', vidErr);
+      }
+    }
+
+    // 4. High-Quality Fallback: If video generation timed out or failed, generate 4K keyframe using OpenRouter official image engine
+    if (!videoUrl) {
+      for (const key of keysToTry) {
+        try {
+          const imgRes = await fetch('https://openrouter.ai/api/v1/images', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${key}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://uyghur-ai.local',
+              'X-Title': 'Uyghur AI Video Studio',
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-image-2.5-flare',
+              prompt: `${englishVisualPhrase}, luxury commercial advertising, ${chosenStyle.enDesc}, 8k cinema camera, dramatic studio lighting, masterpiece`,
+              size: aspectRatio === '16:9' ? '1280x720' : aspectRatio === '1:1' ? '1024x1024' : '720x1280',
+            }),
+          });
+          if (imgRes.ok) {
+            const data = await imgRes.json();
+            const item = data.data?.[0];
+            posterImageUrl = item?.b64_json 
+              ? `data:${item.media_type || 'image/png'};base64,${item.b64_json}` 
+              : (item?.url || '');
+            if (posterImageUrl) break;
+          }
+        } catch (e) {}
+      }
+      videoUrl = posterImageUrl;
+    }
 
     return NextResponse.json({
       success: true,
@@ -209,8 +289,9 @@ Strictly write in fluent, natural, poetic Uyghur.`;
       duration,
       aspectRatio,
       model: effectiveModel,
-      posterImageUrl,
-      videoUrl: posterImageUrl,
+      posterImageUrl: posterImageUrl || videoUrl,
+      videoUrl,
+      isRealVideo,
       humanDetectionStatus: 'Passed (No humans detected. Strictly product-only)',
       remainingCoins: authResult.remainingCoins,
     });
