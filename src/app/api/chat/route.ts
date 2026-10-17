@@ -99,6 +99,9 @@ export async function POST(req: NextRequest) {
       }
 
       if (!response.ok) {
+        if (response.status === 401 && userProvidedKey) {
+          return NextResponse.json({ error: 'INVALID_USER_API_KEY', message: 'API ئاچقۇچى ئىناۋەتسىز.' }, { status: 401 });
+        }
         const errorText = await response.text();
         if (response.status === 401) {
           return NextResponse.json(

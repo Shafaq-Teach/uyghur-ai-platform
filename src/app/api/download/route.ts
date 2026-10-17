@@ -12,13 +12,25 @@ export async function GET(req: NextRequest) {
     return new NextResponse('URL parameter is required', { status: 400 });
   }
 
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return new NextResponse('Invalid URL', { status: 400 });
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    return new NextResponse('Only HTTPS URLs are allowed', { status: 403 });
+  }
+  const isStrictOpenRouter = parsedUrl.hostname === 'openrouter.ai' || parsedUrl.hostname.endsWith('.openrouter.ai');
+
   try {
     const fetchHeaders: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': '*/*',
     };
 
-    if (url.includes('openrouter.ai')) {
+    if (isStrictOpenRouter) {
       const config = await getSystemConfigServer();
       const orKey = config.openRouterKey || process.env.OPENROUTER_API_KEY;
       if (orKey) {

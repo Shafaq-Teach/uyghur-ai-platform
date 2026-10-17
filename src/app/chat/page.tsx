@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { ModelBar } from '@/components/ModelBar';
 import { apiFetch } from '@/lib/apiClient';
@@ -25,8 +26,9 @@ interface ChatMessage {
   timestamp: number;
 }
 
-export default function ChatPage() {
+function ChatContent() {
   const { t, isRtl, settings, addHistoryItem, requireAuth, user, updateUserCoins } = useApp();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -40,6 +42,11 @@ export default function ChatPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState('general');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const p = searchParams.get('prompt');
+    if (p) setInput(p);
+  }, [searchParams]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -340,5 +347,13 @@ export default function ChatPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#07090e]" />}>
+      <ChatContent />
+    </Suspense>
   );
 }
